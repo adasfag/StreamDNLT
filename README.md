@@ -62,7 +62,7 @@ Put the tracking datasets in ./data. It should look like:
 ## Train StreamDNLT
 Download the pretrained [YoloWorld](https://github.com/AILab-CVC/YOLO-World) and install its environment
 
-Training with multiple GPUs using DDP.
+Training with Signle GPU.
 ```
 # UVLTrack
 python  StreamDNLT/YoloWorld/lib/train/run_training.py
