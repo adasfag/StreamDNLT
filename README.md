@@ -26,24 +26,6 @@ Put the tracking datasets in ./data. It should look like:
             |-- basketball
             |-- bear
             ...
-        -- lasotext
-            |-- atv
-            |-- badminton
-            |-- cosplay
-            ...
-        -- got10k
-            |-- test
-            |-- train
-            |-- val
-        -- coco
-            |-- annotations
-            |-- train2017
-        -- trackingnet
-            |-- TRAIN_0
-            |-- TRAIN_1
-            ...
-            |-- TRAIN_11
-            |-- TEST
         -- otb99
             |-- OTB_query_test
             |-- OTB_query_train
