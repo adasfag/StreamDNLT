@@ -46,7 +46,7 @@ Download the pretrained [YoloWorld](https://github.com/AILab-CVC/YOLO-World) and
 
 Training with Signle GPU.
 ```
-# UVLTrack
+# StreamDNLT
 python  StreamDNLT/YoloWorld/lib/train/run_training.py
 ```
 
