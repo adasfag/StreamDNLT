@@ -3,7 +3,7 @@ import torch.utils.data
 from lib.utils import TensorDict
 import numpy as np
 from .utils import SimpleTokenizer
-#from pkg_resources import packaging
+
 from pytorch_pretrained_bert import BertTokenizer
 
 def no_processing(data):
@@ -52,8 +52,8 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
         """
         self.train_lang = False
         self.datasets = datasets
-        self.train_cls = train_cls  # whether we are training classification
-        self.pos_prob = pos_prob  # probability of sampling positive class when making classification
+        self.train_cls = train_cls  
+        self.pos_prob = pos_prob  
         self.mode = mode
         if mode == 'joint':
             assert grounding_ratio is not None
@@ -70,12 +70,12 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
             self.p_vl = 0.0
             self.p_grounding = 1.0
 
-        # If p not provided, sample uniformly from all videos
+        
         if p_datasets is None:
             p_datasets = [len(d) for d in self.datasets]
 
 
-        # Normalize
+        
         p_total = sum(p_datasets)
         self.p_datasets = [x / p_total for x in p_datasets]
 
@@ -89,7 +89,7 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
         self.frame_sample_mode = frame_sample_mode
         self.tokenizer = BertTokenizer.from_pretrained(bert_path, do_lower_case=True)
         
-        # Datasets for different tasks
+        
         self.tracking_dataset = [d for d in self.datasets if d.is_tracking_sequence()]
         
         self.p_tracking_datasets = [p for i, p in enumerate(self.p_datasets) if self.datasets[i].is_tracking_sequence()]
@@ -111,22 +111,22 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
         
         config_path="/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/lib/YOLO-World-master/configs/pretrain/yolo_world_v2_l_clip_large_vlpan_bn_2e-3_100e_4x8gpus_obj365v1_goldg_train_lvis_minival.py"
         
-        # load config
+        
         cfg = Config.fromfile(config_path)
 
         cfg.work_dir = osp.join('./work_dirs',
                                 osp.splitext(osp.basename(config_path))[0])
-         # init test pipeline
+         
         test_pipeline_cfg = get_test_pipeline_cfg(cfg=cfg)
-        # test_pipeline[0].type = 'mmdet.LoadImageFromNDArray'
+        
         test_pipeline = Compose(test_pipeline_cfg)
         self.test_pipeline=test_pipeline
         
-        # 假设归一化使用的均值和标准差
+        
         mean = [0.485, 0.456, 0.406]
         std = [0.229, 0.224, 0.225]
 
-        # 定义反归一化的变换
+        
         self.inv_normalize = transforms.Normalize(
             mean=[-m / s for m, s in zip(mean, std)],
             std=[1 / s for s in std]
@@ -162,7 +162,7 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
             min_id = 0
         if max_id is None or max_id > len(visible):
             max_id = len(visible)
-        # get valid ids
+        
         if force_invisible:
             valid_ids = [i for i in range(min_id, max_id) if not visible[i]]
         else:
@@ -171,13 +171,13 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
             else:
                 valid_ids = [i for i in range(min_id, max_id) if visible[i]]
 
-        # No visible ids
+        
         if len(valid_ids) == 0 or (len(valid_ids) - num_ids)<1:
             return None
         
         start_index = random.randint(0, len(valid_ids) - num_ids)
 
-        return valid_ids[start_index:start_index+num_ids]#从选取的id中随机选取一些序列采样
+        return valid_ids[start_index:start_index+num_ids]
     
     
     
@@ -200,7 +200,7 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
             min_id = 0
         if max_id is None or max_id > len(visible):
             max_id = len(visible)
-        # get valid ids
+        
         if force_invisible:
             valid_ids = [i for i in range(min_id, max_id) if not visible[i]]
         else:
@@ -209,7 +209,7 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
             else:
                 valid_ids = [i for i in range(min_id, max_id) if visible[i]]
 
-        # No visible ids
+        
         if len(valid_ids) == 0:
             return None
 
@@ -218,21 +218,21 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
     
 
     def __getitem__(self, index):
-        # Validation
+        
         if self.mode == "grounding_test":
             return self.sample_grounding_test(index)
         elif self.mode == "tracking_test":
             return self.sample_track_test()
         elif self.mode == "vl_test":
             return self.sample_vl_test()
-        # Train
+        
         elif self.mode == 'tracking':
             return self.sample_track()
         elif self.mode == 'grounding':
             return self.sample_grounding()
         elif self.mode == 'joint':
-            # Sample different modal samples for training
-            #数据集分为三类 1. track 数据集 got-10k 2. grounding 数据集 3. 视觉语言数据集
+            
+            
             seed = random.random()
             if seed < self.p_tracking:
                 return self.sample_track()
@@ -241,9 +241,9 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
             else:
                 return self.sample_vl()
             
-            # #----------------------just for debug------------------------------------
-            # return self.sample_vl()
-            # #----------------------just for debug------------------------------------
+            
+            
+            
             
             
         else:
@@ -256,11 +256,11 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
         """
         valid = False
         while not valid:
-            # Select a dataset
+            
             dataset = random.choices(self.tracking_dataset, self.p_tracking_datasets)[0]
             is_video_dataset = dataset.is_video_sequence()
 
-            # Sample a sequence from the given dataset
+            
             seq_id, visible, seq_info_dict = self.sample_seq_from_dataset(dataset, is_video_dataset)
 
             if is_video_dataset:
@@ -269,21 +269,21 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                 gap_increase = 0
 
                 if self.frame_sample_mode == 'causal':
-                    # Sample test and train frames in a causal manner, i.e. search_frame_ids > template_frame_ids
+                    
                     while search_frame_ids is None:
                         base_frame_id = self._sample_visible_ids(visible, num_ids=1, min_id=self.num_template_frames - 1,
-                                                                 max_id=len(visible) - self.num_search_frames) #从一个seq中的可见frame中采样1个frame 序号
+                                                                 max_id=len(visible) - self.num_search_frames) 
                         prev_frame_ids = self._sample_visible_ids(visible, num_ids=self.num_template_frames - 1,
                                                                   min_id=base_frame_id[0] - self.max_gap - gap_increase,
-                                                                  max_id=base_frame_id[0]) #去找一个之前帧
+                                                                  max_id=base_frame_id[0]) 
                         if prev_frame_ids is None:
                             gap_increase += 5
                             continue
                         template_frame_ids = base_frame_id + prev_frame_ids
                         search_frame_ids = self._sample_visible_ids(visible, min_id=template_frame_ids[0] + 1,
                                                                   max_id=template_frame_ids[0] + self.max_gap + gap_increase,
-                                                                  num_ids=self.num_search_frames)#要求在template之后且连续出现了
-                        # Increase gap until a frame is found
+                                                                  num_ids=self.num_search_frames)
+                        
                         gap_increase += 5
 
                 elif self.frame_sample_mode == "trident" or self.frame_sample_mode == "trident_pro":
@@ -293,15 +293,15 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                 else:
                     raise ValueError("Illegal frame sample mode")
             else:
-                # In case of image dataset, just repeat the image to generate synthetic video
+                
                 template_frame_ids = [1] * self.num_template_frames
                 search_frame_ids = [1] * self.num_search_frames 
                 
-            template_frames, template_anno, meta_obj_train = dataset.get_frames(seq_id, template_frame_ids, seq_info_dict)#模板帧id 162 相隔20帧
-            search_frames, search_anno, meta_obj_test = dataset.get_frames(seq_id, search_frame_ids, seq_info_dict)#搜索帧id 179 174
+            template_frames, template_anno, meta_obj_train = dataset.get_frames(seq_id, template_frame_ids, seq_info_dict)
+            search_frames, search_anno, meta_obj_test = dataset.get_frames(seq_id, search_frame_ids, seq_info_dict)
 
             language = meta_obj_train.get('language', None)
-            if not is_video_dataset:#qwz 修正refecoco数据集语言描述不准确的bug 此时是vl中的非视频数据集 refecoco 
+            if not is_video_dataset:
                 language=template_anno.get("nlp",None)
                 if language is not None:
                     language=language[0]
@@ -317,7 +317,7 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                                 'search_anno': search_anno['bbox'],
                                 'text': language*self.num_search_frames,
                                 'text_mask': mask*self.num_search_frames,
-                                'flag': torch.tensor([[2]]),#将tracking 数据集 当成特殊得vl tracking数据集
+                                'flag': torch.tensor([[2]]),
                                 'ori_language':ori_language
                                 })
             
@@ -335,11 +335,11 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
         """
         valid = False
         while not valid:
-            # Select a dataset
+            
             dataset = random.choices(self.vl_dataset, self.p_vl_datasets)[0]
             is_video_dataset = dataset.is_video_sequence()
 
-            # Sample a sequence from the given dataset
+            
             seq_id, visible, seq_info_dict = self.sample_seq_from_dataset(dataset, is_video_dataset)
 
             if is_video_dataset:
@@ -348,7 +348,7 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                 gap_increase = 0
 
                 if self.frame_sample_mode == 'causal':
-                    # Sample test and train frames in a causal manner, i.e. search_frame_ids > template_frame_ids
+                    
                     while search_frame_ids is None:
                         base_frame_id = self._sample_visible_ids(visible, num_ids=1, min_id=self.num_template_frames - 1,
                                                                  max_id=len(visible) - self.num_search_frames)
@@ -361,8 +361,8 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                         template_frame_ids = base_frame_id + prev_frame_ids
                         search_frame_ids = self._sample_visible_ids(visible, min_id=template_frame_ids[0] + 1,
                                                                   max_id=template_frame_ids[0] + self.max_gap + gap_increase,
-                                                                  num_ids=self.num_search_frames)#从200之内随机抽样 775 -> 783 784 785
-                        # Increase gap until a frame is found
+                                                                  num_ids=self.num_search_frames)
+                        
                         gap_increase += 5
 
                 elif self.frame_sample_mode == "trident" or self.frame_sample_mode == "trident_pro":
@@ -372,14 +372,14 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                 else:
                     raise ValueError("Illegal frame sample mode")
             else:
-                # In case of image dataset, just repeat the image to generate synthetic video
-                template_frame_ids = [1] * self.num_template_frames #refecoco采样概率高但不是video视频
+                
+                template_frame_ids = [1] * self.num_template_frames 
                 search_frame_ids = [1] * self.num_search_frames 
             
             
             
-            template_frames_input, template_anno, meta_obj_train = dataset.get_frames(seq_id, template_frame_ids, seq_info_dict)#模板帧id 162 相隔20帧
-            search_frames_input, search_anno, meta_obj_test = dataset.get_frames(seq_id, search_frame_ids, seq_info_dict)#搜索帧id 179 174
+            template_frames_input, template_anno, meta_obj_train = dataset.get_frames(seq_id, template_frame_ids, seq_info_dict)
+            search_frames_input, search_anno, meta_obj_test = dataset.get_frames(seq_id, search_frame_ids, seq_info_dict)
             
             
             
@@ -403,15 +403,15 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                 continue
             
             
-            template_images_track=template_images#template 归一化
+            template_images_track=template_images
             
             
             
             search_images_track=search_images
             
             
-            # search_images_track=self.inv_normalize(search_images_track)
-            # search_images_track=(search_images_track*255).clamp(0.0, 255.0)#search_image 不归一化
+            
+            
              
             
             
@@ -429,11 +429,11 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
             
             
             
-            template_frames, template_anno, meta_obj_train = dataset.get_frames_path(seq_id, template_frame_ids, seq_info_dict)#1139
-            search_frames, search_anno, meta_obj_test = dataset.get_frames_path(seq_id, search_frame_ids, seq_info_dict)#1318 1169
+            template_frames, template_anno, meta_obj_train = dataset.get_frames_path(seq_id, template_frame_ids, seq_info_dict)
+            search_frames, search_anno, meta_obj_test = dataset.get_frames_path(seq_id, search_frame_ids, seq_info_dict)
 
             language = meta_obj_train.get('language', None)
-            if not is_video_dataset:#qwz 修正refecoco数据集语言描述不准确的bug 此时是vl中的非视频数据集 refecoco 
+            if not is_video_dataset:
                 language=template_anno.get("nlp",None)
                 if language is not None:
                     language=language[0]
@@ -456,13 +456,13 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                         lines = f.readlines()
                     texts = [[t.rstrip('\r\n')] for t in lines] + [[' ']]
                 else:
-                    texts = [t.strip() for t in ori_language.split(',')]#texts后面需要加一个' '
+                    texts = [t.strip() for t in ori_language.split(',')]
                     texts=[["".join(texts)]]
                     texts.append([' '])
     
                 
                 
-                data_info = dict(img_id=0, img_path=search_frames_path, texts=texts)#图像路径:str 文本:两个list ['prompt']+['']
+                data_info = dict(img_id=0, img_path=search_frames_path, texts=texts)
     
                 
                 data_info = self.test_pipeline(data_info)
@@ -477,9 +477,9 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                 
                 
                 
-            data = TensorDict({ 'template_images': template_frames_input,#模板信息
+            data = TensorDict({ 'template_images': template_frames_input,
                                 'search_images': search_frames_input,
-                                'template_anno': template_anno_bbox,#后台拿到的一个批次是这样 一系列连续的间隔图像帧
+                                'template_anno': template_anno_bbox,
                                 'search_anno': search_anno_bbox,
                                 'text': language*self.num_search_frames,
                                 'ori_language':ori_language,
@@ -500,10 +500,10 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
         """
         valid = False
         while not valid:
-            # Select a dataset
+            
             dataset = random.choices(self.grounding_dataset, self.p_grounding_datasets)[0]
             is_video_dataset = dataset.is_video_sequence()
-            # Sample a sequence from the given dataset
+            
             seq_id, visible, seq_info_dict = self.sample_seq_from_dataset(dataset, is_video_dataset)
             if is_video_dataset:
                 grounding_frame_ids = None
@@ -526,18 +526,18 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                     search_frame_ids = self._sample_visible_ids_bak(visible, min_id=grounding_frame_ids[0] + 1, max_id=
                                                                 grounding_frame_ids[0] + self.max_gap + gap_increase, 
                                                                 num_ids=(self.num_search_frames-1))
-                    # Increase gap until a frame is found
+                    
                     gap_increase += 5
             else:
-                # In case of image dataset, just repeat the image to generate synthetic video
+                
                 grounding_frame_ids = [1] * self.num_grounding_frames
                 search_frame_ids = [1] * (self.num_search_frames-1)
                 
-            grounding_frames, grounding_anno, meta_obj_train = dataset.get_frames(seq_id, grounding_frame_ids, seq_info_dict) #720 1280 3
+            grounding_frames, grounding_anno, meta_obj_train = dataset.get_frames(seq_id, grounding_frame_ids, seq_info_dict) 
             search_frames, search_anno, meta_obj_test = dataset.get_frames(seq_id, search_frame_ids, seq_info_dict)
 
             language = meta_obj_train.get('language', None)
-            if not is_video_dataset:#qwz 修正refecoco数据集语言描述不准确的bug 此时是vl中的非视频数据集 refecoco 
+            if not is_video_dataset:
                 language=grounding_anno.get("nlp",None)
                 if language is not None:
                     language=language[0]
@@ -551,7 +551,7 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                                 'grounding_anno': grounding_anno['bbox'],
                                 'search_images': search_frames,
                                 'search_anno': search_anno['bbox'],
-                                'text': language, # left right top bottom middle 2187, 2157, 2327, 3953, 2690
+                                'text': language, 
                                 'text_mask': mask*self.num_search_frames ,
                                 'flag': torch.tensor([[1]]),
                                 'ori_language':ori_language
@@ -568,14 +568,14 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
         """
         valid = False
         while not valid:
-            # Select a dataset
+            
             track_dataset = [d for d in self.datasets if d.is_video_sequence()]
             p_datasets = [p for i, p in enumerate(self.p_datasets) if self.datasets[i].is_video_sequence()]
             dataset = random.choices(track_dataset, p_datasets)[0]
 
             is_video_dataset = dataset.is_video_sequence()
 
-            # Sample a sequence from the given dataset
+            
             seq_id, visible, seq_info_dict = self.sample_seq_from_dataset(dataset, is_video_dataset)
 
             if is_video_dataset:
@@ -584,7 +584,7 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                 gap_increase = 0
 
                 if self.frame_sample_mode == 'causal':
-                    # Sample test and train frames in a causal manner, i.e. search_frame_ids > template_frame_ids
+                    
                     while search_frame_ids is None:
                         base_frame_id = self._sample_visible_ids(visible, num_ids=1, min_id=self.num_template_frames - 1,
                                                                  max_id=len(visible) - self.num_search_frames)
@@ -598,7 +598,7 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                         search_frame_ids = self._sample_visible_ids(visible, min_id=template_frame_ids[0] + 1,
                                                                   max_id=template_frame_ids[0] + self.max_gap + gap_increase,
                                                                   num_ids=self.num_search_frames)
-                        # Increase gap until a frame is found
+                        
                         gap_increase += 5
 
                 elif self.frame_sample_mode == "trident" or self.frame_sample_mode == "trident_pro":
@@ -608,7 +608,7 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                 else:
                     raise ValueError("Illegal frame sample mode")
             else:
-                # In case of image dataset, just repeat the image to generate synthetic video
+                
                 template_frame_ids = [1] * self.num_template_frames
                 search_frame_ids = [1] * self.num_search_frames 
                 
@@ -630,7 +630,7 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                                 'text_mask': mask*2,
                                 'flag': torch.tensor([[2]]),
                                 'ori_language':ori_language
-                                }) # torch.randint(2, (1,1))*2})
+                                }) 
             data = self.processing.track_process(data)
             valid = data['valid']
         del data['valid']
@@ -643,14 +643,14 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
         """
         valid = False
         while not valid:
-            # Select a dataset
+            
             track_dataset = [d for d in self.datasets if d.is_video_sequence()]
             p_datasets = [p for i, p in enumerate(self.p_datasets) if self.datasets[i].is_video_sequence()]
             dataset = random.choices(track_dataset, p_datasets)[0]
 
             is_video_dataset = dataset.is_video_sequence()
 
-            # Sample a sequence from the given dataset
+            
             seq_id, visible, seq_info_dict = self.sample_seq_from_dataset(dataset, is_video_dataset)
 
             if is_video_dataset:
@@ -659,7 +659,7 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                 gap_increase = 0
 
                 if self.frame_sample_mode == 'causal':
-                    # Sample test and train frames in a causal manner, i.e. search_frame_ids > template_frame_ids
+                    
                     while search_frame_ids is None:
                         base_frame_id = self._sample_visible_ids(visible, num_ids=1, min_id=self.num_template_frames - 1,
                                                                  max_id=len(visible) - self.num_search_frames)
@@ -673,7 +673,7 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                         search_frame_ids = self._sample_visible_ids(visible, min_id=template_frame_ids[0] + 1,
                                                                   max_id=template_frame_ids[0] + self.max_gap + gap_increase,
                                                                   num_ids=self.num_search_frames)
-                        # Increase gap until a frame is found
+                        
                         gap_increase += 5
 
                 elif self.frame_sample_mode == "trident" or self.frame_sample_mode == "trident_pro":
@@ -683,7 +683,7 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                 else:
                     raise ValueError("Illegal frame sample mode")
             else:
-                # In case of image dataset, just repeat the image to generate synthetic video
+                
                 template_frame_ids = [1] * self.num_template_frames
                 search_frame_ids = [1] * self.num_search_frames 
                 
@@ -705,7 +705,7 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                                 'text_mask': mask*2,
                                 'flag': torch.tensor([[0]]),
                                 'ori_language':ori_language
-                                }) # torch.randint(2, (1,1))*2})
+                                }) 
             data = self.processing.track_process(data)
             valid = data['valid']
         del data['valid']
@@ -716,7 +716,7 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
         returns:
             TensorDict - dict containing all the data blocks
         """
-        # Select a dataset
+        
         valid = False
         while not valid:
             dataset = self.datasets[0]
@@ -748,13 +748,13 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
 
     def sample_seq_from_dataset(self, dataset, is_video_dataset):
 
-        # Sample a sequence with enough visible frames
+        
         enough_visible_frames = False
         while not enough_visible_frames:
-            # Sample a sequence
-            seq_id = random.randint(0, dataset.get_num_sequences() - 1)#从数据集的序列长度中随机采样一个数
+            
+            seq_id = random.randint(0, dataset.get_num_sequences() - 1)
 
-            # Sample frames
+            
             seq_info_dict = dataset.get_sequence_info(seq_id)
             visible = seq_info_dict['visible']
 
@@ -771,13 +771,13 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
         return seq_id, visible, seq_info_dict
 
     def get_one_search(self):
-        # Select a dataset
+        
         dataset = random.choices(self.datasets, self.p_datasets)[0]
 
         is_video_dataset = dataset.is_video_sequence()
-        # Sample a sequence
+        
         seq_id, visible, seq_info_dict = self.sample_seq_from_dataset(dataset, is_video_dataset)
-        # Sample a frame
+        
         if is_video_dataset:
             if self.frame_sample_mode == "stark":
                 search_frame_ids = self._sample_visible_ids(seq_info_dict["valid"], num_ids=1)
@@ -785,20 +785,20 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
                 search_frame_ids = self._sample_visible_ids(visible, num_ids=1, allow_invisible=True)
         else:
             search_frame_ids = [1]
-        # Get the image, bounding box and other info
+        
         search_frames, search_anno, meta_obj_test = dataset.get_frames(seq_id, search_frame_ids, seq_info_dict)
 
         return search_frames, search_anno, meta_obj_test
 
     def get_frame_ids_trident(self, visible):
-        # Get template and search ids in a 'trident' manner
+        
         template_frame_ids_extra = []
         while None in template_frame_ids_extra or len(template_frame_ids_extra) == 0:
             template_frame_ids_extra = []
-            # first randomly sample two frames from a video
-            template_frame_id1 = self._sample_visible_ids(visible, num_ids=1)  # the initial template id
-            search_frame_ids = self._sample_visible_ids(visible, num_ids=1)  # the search region id
-            # get the dynamic template id
+            
+            template_frame_id1 = self._sample_visible_ids(visible, num_ids=1)  
+            search_frame_ids = self._sample_visible_ids(visible, num_ids=1)  
+            
             for max_gap in self.max_gap:
                 if template_frame_id1[0] >= search_frame_ids[0]:
                     min_id, max_id = search_frame_ids[0], search_frame_ids[0] + max_gap
@@ -818,14 +818,14 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
         return template_frame_ids, search_frame_ids
 
     def get_frame_ids_stark(self, visible, valid):
-        # Get template and search ids in a 'stark' manner
+        
         template_frame_ids_extra = []
         while None in template_frame_ids_extra or len(template_frame_ids_extra) == 0:
             template_frame_ids_extra = []
-            # First randomly sample two frames from a video
-            template_frame_id1 = self._sample_visible_ids(visible, num_ids=1)  # the initial template id
-            search_frame_ids = self._sample_visible_ids(visible, num_ids=1)  # the search region id
-            # Get the dynamic template id
+            
+            template_frame_id1 = self._sample_visible_ids(visible, num_ids=1)  
+            search_frame_ids = self._sample_visible_ids(visible, num_ids=1)  
+            
             for max_gap in self.max_gap:
                 if template_frame_id1[0] >= search_frame_ids[0]:
                     min_id, max_id = search_frame_ids[0], search_frame_ids[0] + max_gap
@@ -853,7 +853,7 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
         nlp_token = self.tokenizer.tokenize(nlp)
         if len(nlp_token) > seq_length - 2:
             nlp_token = nlp_token[0:(seq_length - 2)]
-        # Build tokens and token_ids
+        
         tokens = []
         input_type_ids = []
         tokens.append("[CLS]")
@@ -865,11 +865,11 @@ class GroundingAndTrackingSampler(torch.utils.data.Dataset):
         input_type_ids.append(0)
         input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
 
-        # The mask has 1 for real tokens and 0 for padding tokens. Only real
-        # tokens are attended to.
+        
+        
         input_mask = [1] * len(input_ids)
 
-        # Zero-pad up to the sequence length.
+        
         while len(input_ids) < seq_length:
             input_ids.append(0)
             input_mask.append(0)

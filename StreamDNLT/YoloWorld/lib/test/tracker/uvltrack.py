@@ -1,7 +1,7 @@
 from lib.test.tracker.basetracker import BaseTracker
 import torch
 from lib.train.data.processing_utils import sample_target, grounding_resize
-# for debug
+
 from copy import deepcopy
 import cv2
 import os
@@ -81,12 +81,12 @@ def select_best_box_with_presorted_scores(pre_kf_bbox, boxes, pre_scores, top_k=
     selected_size_diff = None
 
     for i in range(min(top_k, len(pre_scores))):
-        box = boxes[i]  # 注意：scores 已排序，boxes 没排
+        box = boxes[i]  
         pre_score=pre_scores[i]
         dist = center_distance(box, pre_kf_bbox)
         size_diff = size_difference(box, pre_kf_bbox)
 
-        score = alpha * dist + beta * size_diff # 越小越好
+        score = alpha * dist + beta * size_diff 
 
         if score < best_score:
             best_score = score
@@ -102,19 +102,19 @@ def select_best_box_with_presorted_scores(pre_kf_bbox, boxes, pre_scores, top_k=
 
 
 def save_search_with_plt(search, filename="my_search_image.png"):
-    # 去掉 batch 维度: (1, 3, H, W) -> (3, H, W)
+    
     image = search.squeeze(0)
 
-    # 归一化到 [0, 1]
+    
     image_min = image.min()
     image_max = image.max()
     image = (image - image_min) / (image_max - image_min + 1e-5)
     image = torch.clamp(image, 0, 1)
 
-    # 转换为 numpy 并调整为 (H, W, 3)
+    
     image_np = image.permute(1, 2, 0).cpu().numpy()
 
-    # 保存图像
+    
     plt.imsave(filename, image_np)
 
 
@@ -125,9 +125,9 @@ def compute_attention_map(feature_map, norm=True, method='mean'):
     return: attention_map [H, W]
     """
     if method == 'mean':
-        attn_map = feature_map.abs().mean(dim=0)  # [H, W]
+        attn_map = feature_map.abs().mean(dim=0)  
     elif method == 'l2':
-        attn_map = torch.norm(feature_map, p=2, dim=0)  # [H, W]
+        attn_map = torch.norm(feature_map, p=2, dim=0)  
     else:
         raise ValueError("Unknown method")
 
@@ -143,13 +143,13 @@ def save_attention_maps(current_image_feature, save_dir="attention_maps", method
     os.makedirs(save_dir, exist_ok=True)
 
     for index, image_feature in enumerate(current_image_feature):
-        feature_map = image_feature.squeeze(0)  # [C, H, W]
-        attn_map = compute_attention_map(feature_map, method=method)  # [H, W]
+        feature_map = image_feature.squeeze(0)  
+        attn_map = compute_attention_map(feature_map, method=method)  
 
-        # 转为 PIL Image
-        attn_img = TF.to_pil_image(attn_map)  # 自动把 [H, W] 转为灰度图
+        
+        attn_img = TF.to_pil_image(attn_map)  
 
-        # 保存图像
+        
         filename = os.path.join(save_dir, f"attention_{index}.png")
         attn_img.save(filename)
 
@@ -168,36 +168,36 @@ def extract_selected_scores(norm_pre_bbox, saved_cls):
     device = saved_cls.device
     _, _, H, W = saved_cls.shape
 
-    # Get the first class score map: shape [1, 1, H, W]
-    class_0_score_map = saved_cls[:, 0:1, :, :]  # shape: [1, 1, H, W]
+    
+    class_0_score_map = saved_cls[:, 0:1, :, :]  
 
     selected_score = []
 
     for bbox in norm_pre_bbox:
         x1, y1, x2, y2 = bbox
 
-        # Denormalize to image coordinates
+        
         ix1 = int(x1 * W)
         iy1 = int(y1 * H)
         ix2 = int(x2 * W)
         iy2 = int(y2 * H)
 
-        # Clamp the values to be within valid range
+        
         ix1 = max(0, min(ix1, W - 1))
         ix2 = max(0, min(ix2, W - 1))
         iy1 = max(0, min(iy1, H - 1))
         iy2 = max(0, min(iy2, H - 1))
 
-        # Avoid degenerate boxes
+        
         if ix2 <= ix1 or iy2 <= iy1:
             selected_score.append(torch.tensor([0.0], device=device))
             continue
 
-        region = class_0_score_map[0, 0, iy1:iy2, ix1:ix2]  # shape [h', w']
+        region = class_0_score_map[0, 0, iy1:iy2, ix1:ix2]  
         mean_score = region.mean() if region.numel() > 0 else torch.tensor(0.0, device=device)
-        selected_score.append(mean_score.unsqueeze(0))  # shape [1]
+        selected_score.append(mean_score.unsqueeze(0))  
 
-    selected_score = torch.stack(selected_score, dim=0)  # shape [10, 1]
+    selected_score = torch.stack(selected_score, dim=0)  
     return selected_score
 
 class UVLTrack(BaseTracker):
@@ -213,21 +213,21 @@ class UVLTrack(BaseTracker):
         
         
         super(UVLTrack, self).__init__(params)
-        #network = build_model(params.cfg) just for debug
-        #network.load_state_dict(torch.load(self.params.checkpoint, map_location='cpu')['net'], strict=False) just for debug
+        
+        
         self.map_size = params.search_size // 16
         self.cfg = params.cfg
-        #self.network = network.cuda() just for debug
-        #self.network.eval() just for debug
+        
+        
         self.preprocessor = Preprocessor_wo_mask()
         self.state = None
-        # for debug
+        
         self.debug = self.params.debug
         self.frame_id = 0
-        # if self.debug:
-        #     self.save_dir = "/ssd/myc/VL_project/MUTrack/debug"
-        #     if not os.path.exists(self.save_dir):
-        #         os.makedirs(self.save_dir)
+        
+        
+        
+        
         self.update_interval = self.cfg.TEST.UPDATE_INTERVAL
         self.feat_size = self.params.search_size // 16
         self.tokenizer = BertTokenizer.from_pretrained(self.cfg.MODEL.BACKBONE.LANGUAGE.VOCAB_PATH, do_lower_case=True)
@@ -240,25 +240,25 @@ class UVLTrack(BaseTracker):
         
 
 
-        # try :
-        # load config
+        
+        
     
         config_path="/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/lib/YOLO-World-master/configs/pretrain/yolo_world_v2_l_clip_large_vlpan_bn_2e-3_100e_4x8gpus_obj365v1_goldg_train_lvis_minival.py"
         
-        # load config
+        
         cfg = Config.fromfile(config_path)
 
         cfg.work_dir = osp.join('./work_dirs',
                                 osp.splitext(osp.basename(config_path))[0])
             
-        # init test pipeline
+        
         test_pipeline_cfg = get_test_pipeline_cfg(cfg=cfg)
-        # test_pipeline[0].type = 'mmdet.LoadImageFromNDArray'
+        
     
         test_pipeline = Compose(test_pipeline_cfg)
         self.test_pipeline=test_pipeline
-        # except:
-        #     pass
+        
+        
         
         self.pre_states=[]
         self.memory_feature=[]
@@ -268,7 +268,7 @@ class UVLTrack(BaseTracker):
     def grounding(self, image, info: dict):
         bbox = torch.tensor([0., 0., 0., 0.]).cuda()
         h, w = image.shape[:2]
-        im_crop_padded, _, _, _, _ = grounding_resize(image, self.params.grounding_size, bbox, None) #256 256 3
+        im_crop_padded, _, _, _, _ = grounding_resize(image, self.params.grounding_size, bbox, None) 
         ground = self.preprocessor.process(im_crop_padded).cuda()
         template = torch.zeros([1, 3, self.params.template_size, self.params.template_size]).cuda()
         template_mask = torch.zeros([1, (self.params.template_size//16)**2]).bool().cuda()
@@ -294,18 +294,6 @@ class UVLTrack(BaseTracker):
         
         
         
-        #model = load_model_from_fine_tune("/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/lib/groundingdino/config/GroundingDINO_SwinT_OGC_grounding_adapter.py", "/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/work_dir/baseline_dinogrounding_query_adapter_decode/checkpoints/train/uvltrack/baseline_base_dino_memory_allnltdataset_grounding/GroundingDINOTrackerAdapter_ep0010.pth.tar")
-        #model = load_model_from_fine_tune("/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/lib/groundingdino/config/GroundingDINO_SwinT_OGC_grounding_adapter.py", "/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/work_dir/baseline_dinogrounding_query_adapter_query_decode_adapter_enhancement_addloss/checkpoints/train/uvltrack/baseline_base_dino_memory_allnltdataset_grounding/GroundingDINOTrackerAdapter_ep0010.pth.tar") 
-        #model = load_model_from_fine_tune("/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/lib/groundingdino/config/GroundingDINO_SwinT_OGC_grounding_adapter.py", "/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/work_dir/baseline_dinogrounding_query_adapter_query_decode_adapter_enhancement_addloss_moreinstances/checkpoints/train/uvltrack/baseline_base_dino_memory_allnltdataset_grounding/GroundingDINOTrackerAdapter_ep0010.pth.tar") 
-        
-        
-        
-        
-        
-        
-        #model = load_model_from_fine_tune("/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/lib/groundingdino/config/GroundingDINO_SwinT_OGC_grounding_adapter.py", "/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/work_dir/baseline_dinogrounding_query_adapter_query_decode_adapter_enhancement_addloss_moreinstances_gai/checkpoints/train/uvltrack/baseline_base_dino_memory_allnltdataset_grounding/GroundingDINOTrackerAdapter_ep0010.pth.tar") 
-        #model = load_model_from_fine_tune("/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/lib/groundingdino/config/GroundingDINO_SwinT_OGC_grounding_adapter.py", "/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/work_dir/baseline_dinogrounding_query_adapter_query_decode_adapter_enhancement_addloss_moreinstances_gai/checkpoints/train/uvltrack/baseline_base_dino_memory_allnltdataset_grounding/GroundingDINOTrackerAdapter_ep0010.pth.tar") 
-        #model = load_model_from_fine_tune("/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/lib/groundingdino/config/GroundingDINO_SwinT_OGC_grounding_adapter.py", "/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/work_dir/baseline_dinogrounding_query_adapter_class_score_moreinstances/checkpoints/train/uvltrack/baseline_base_dino_memory_allnltdataset_grounding/GroundingDINOTrackerAdapter_ep0005.pth.tar") 
         
         
         
@@ -321,23 +309,35 @@ class UVLTrack(BaseTracker):
         
         
         
-        #model = load_model_from_fine_tune("/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/lib/groundingdino/config/GroundingDINO_SwinT_OGC_grounding_adapter.py", "/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/work_dir/baseline_dinogrounding_query_class_score_moreinstances/checkpoints/train/uvltrack/baseline_base_dino_memory_allnltdataset_grounding/GroundingDINOTrackerAdapter_ep0010.pth.tar") 
-        
-        
-        
-        #model = load_model_from_fine_tune("/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/lib/groundingdino/config/GroundingDINO_SwinT_OGC_grounding_adapter.py", "/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/work_dir/baseline_dinogrounding_query_v0/checkpoints/train/uvltrack/baseline_base_dino_memory_allnltdataset_grounding/GroundingDINOTrackerAdapter_ep0010.pth.tar") 
-        
-        #model = load_model_from_fine_tune("/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/lib/groundingdino/config/GroundingDINO_SwinT_OGC_grounding_adapter.py", "/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/work_dir/baseline_dinogrounding_query_v0_epoch/checkpoints/train/uvltrack/baseline_base_dino_memory_allnltdataset_grounding/GroundingDINOTrackerAdapter_ep0020.pth.tar") 
         
         
         
         
         
         
-        #model = load_model_from_fine_tune("/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/lib/groundingdino/config/GroundingDINO_SwinT_OGC_grounding_adapter.py", "/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/work_dir/baseline_dinogrounding_query_v0_epoch_tnl2k/checkpoints/train/uvltrack/baseline_base_dino_memory_allnltdataset_grounding/GroundingDINOTrackerAdapter_ep0020.pth.tar") 
-        #model = load_model_from_fine_tune("/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/lib/groundingdino/config/GroundingDINO_SwinT_OGC_grounding_adapter.py", "/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/work_dir/baseline_dinogrounding_query_v0_epoch_lasot/checkpoints/train/uvltrack/baseline_base_dino_memory_lasot_grounding/GroundingDINOTrackerAdapter_ep0010.pth.tar") 
         
-        #model = load_model_from_fine_tune("/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/lib/groundingdino/config/GroundingDINO_SwinT_OGC_grounding_adapter.py", "/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/work_dir/baseline_dinogrounding_query_v0_epoch_tnl2k/checkpoints/train/uvltrack/baseline_base_dino_memory_allnltdataset_grounding/GroundingDINOTrackerAdapter_ep0020.pth.tar") 
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         
         
         
@@ -351,8 +351,8 @@ class UVLTrack(BaseTracker):
         
         bbox = torch.tensor([0., 0., 0., 0.]).cuda()
         h, w = image.shape[:2]
-        im_crop_padded, _, _, _, _ = grounding_resize(image, 320, bbox, None) #256 256 3
-        search = self.preprocessor.process(im_crop_padded)[0].cuda()#3 256 256
+        im_crop_padded, _, _, _, _ = grounding_resize(image, 320, bbox, None) 
+        search = self.preprocessor.process(im_crop_padded)[0].cuda()
         template = None
         boxes, logits, phrases,class_score= predict_grounding(
                             model=model,
@@ -369,9 +369,9 @@ class UVLTrack(BaseTracker):
                   
         max_index=logits.argmax(dim=0)
 
-        boxes=boxes[0:1] #现在直接用第一个
+        boxes=boxes[0:1] 
         logits=logits[max_index:max_index+1]
-        phrases=phrases[max_index:max_index+1]  #cx,cy,w,h
+        phrases=phrases[max_index:max_index+1]  
         boxes=boxes*np.max(image.shape[:2])
         boxes = box_cxcywh_to_xywh(boxes).cpu().tolist()[0]
         
@@ -412,7 +412,7 @@ class UVLTrack(BaseTracker):
         return out_dict
     
     
-    def grounding_yolo(self, image,info: dict,imagepath:str):#对于NL使用grounding模型，剩下交给tracking模型
+    def grounding_yolo(self, image,info: dict,imagepath:str):
         
 
         model = info["model"]
@@ -434,7 +434,7 @@ class UVLTrack(BaseTracker):
                     lines = f.readlines()
                 texts = [[t.rstrip('\r\n')] for t in lines] + [[' ']]
             else:
-                texts = [t.strip() for t in TEXT_PROMPT.split(',')]#texts后面需要加一个' '
+                texts = [t.strip() for t in TEXT_PROMPT.split(',')]
                 texts=[["".join(texts)]]
                 texts.append([' '])
             
@@ -442,7 +442,7 @@ class UVLTrack(BaseTracker):
             
             
             
-            data_info = dict(img_id=0, img_path=frame_path, texts=texts)#图像路径:str 文本:两个list ['prompt']+['']
+            data_info = dict(img_id=0, img_path=frame_path, texts=texts)
             
             
             
@@ -537,7 +537,7 @@ class UVLTrack(BaseTracker):
         del model
             
 
-        self.state= box_xyxy_to_xywh(pre_bbox).numpy() #363 101 409 116
+        self.state= box_xyxy_to_xywh(pre_bbox).numpy() 
 
    
         return {"target_bbox": self.state,"image":data_batch["inputs"]}
@@ -552,14 +552,14 @@ class UVLTrack(BaseTracker):
     
     
     def grounding_dino_traingfree(self, image,info: dict,imagepath:str):
-        #这一块直接调用原始模型进行全图推理了
+        
         
         
         
         
         
         if self.grounding_model is None:
-            #model = load_model("/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/lib/groundingdino/config/GroundingDINO_SwinT_OGC.py", "/home/qui_wzh/20240630/home/language-guided-tracking/GroundingDINO/weights/groundingdino_swint_ogc.pth")
+            
             model = load_model("/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/lib/groundingdino/config/GroundingDINO_SwinB_cfg.py", "/home/qui_wzh/20240630/home/language-guided-tracking/UVLTrack-master/lib/groundingdino/pre_models_weight/groundingdino_swinb_cogcoor.pth")
   
             self.grounding_model=model
@@ -569,14 +569,14 @@ class UVLTrack(BaseTracker):
         BOX_TRESHOLD=0.0
         TEXT_TRESHOLD=0.00
         
-        image_source, image = load_image(imagepath)#image_source 360 640 3； image 3 750 1333
+        image_source, image = load_image(imagepath)
                         
         boxes, logits, phrases = predict(
             model=model,
             image=image,
             caption=TEXT_PROMPT,
             box_threshold=BOX_TRESHOLD,
-            text_threshold=TEXT_TRESHOLD #通常是排名靠前的单词更可靠
+            text_threshold=TEXT_TRESHOLD 
         )
         
         
@@ -600,7 +600,7 @@ class UVLTrack(BaseTracker):
         h, w, _ = image_source.shape
         boxes = boxes * torch.Tensor([w, h, w, h])
         xyxy = box_convert(boxes=boxes, in_fmt="cxcywh", out_fmt="xywh").numpy()
-        xyxy=xyxy[0].tolist()#[258.31088 ,  91.37656 ,  23.302063,  30.50621 ]
+        xyxy=xyxy[0].tolist()
         
         
         
@@ -618,9 +618,9 @@ class UVLTrack(BaseTracker):
     
 
     def window_prior(self):
-        hanning = np.hanning(self.map_size)#16
-        window = np.outer(hanning, hanning)#16 16
-        self.window = window.flatten()#256
+        hanning = np.hanning(self.map_size)
+        window = np.outer(hanning, hanning)
+        self.window = window.flatten()
         self.torch_window = hann2d(torch.tensor([self.map_size, self.map_size]).long(), centered=True).flatten()
 
     def initialize(self, image, info: dict,test:bool=False):
@@ -629,7 +629,7 @@ class UVLTrack(BaseTracker):
             init_bbox = grounding_state['pred_boxes']
             self.flag = torch.tensor([[2]]).cuda()
         elif self.cfg.TEST.MODE == 'NLBBOX':
-            text, mask = self.extract_token_from_nlp(info['language'], self.cfg.MODEL.BACKBONE.LANGUAGE.BERT.MAX_QUERY_LEN)#text:1 40 mask:1 40
+            text, mask = self.extract_token_from_nlp(info['language'], self.cfg.MODEL.BACKBONE.LANGUAGE.BERT.MAX_QUERY_LEN)
             self.text = NestedTensor(text, mask)
             init_bbox = info['init_bbox']
             self.flag = torch.tensor([[2]]).cuda()
@@ -641,21 +641,21 @@ class UVLTrack(BaseTracker):
             self.flag = torch.tensor([[0]]).cuda()
         self.window_prior()
         z_patch_arr, _, _, bbox = sample_target(image, init_bbox, self.params.template_factor,
-                                                    output_sz=self.params.template_size, return_bbox=True)#z_patch_arr:128 128 3 bbox:1 1 4
-        self.template_mask = self.anno2mask(bbox.reshape(1, 4), size=self.params.template_size//16)#1 64
+                                                    output_sz=self.params.template_size, return_bbox=True)
+        self.template_mask = self.anno2mask(bbox.reshape(1, 4), size=self.params.template_size//16)
         self.z_patch_arr = z_patch_arr
         self.template_bbox = (bbox*self.params.template_size)[0, 0].tolist()
         template = self.preprocessor.process(z_patch_arr)
         self.template = template
-        # forward the context once
+        
         y_patch_arr, _, _, y_bbox = sample_target(image, init_bbox, self.params.search_factor,
-                                                    output_sz=self.params.search_size, return_bbox=True)#y_patch_arr:256 256  y_bbox:1 1 4
+                                                    output_sz=self.params.search_size, return_bbox=True)
         self.y_patch_arr = y_patch_arr
         self.context_bbox = (y_bbox*self.params.search_size)[0, 0].tolist()
         context = self.preprocessor.process(y_patch_arr)
         context_mask = self.anno2mask(y_bbox.reshape(1, 4), self.params.search_size//16)
-        self.prompt = self.network.forward_prompt_init(self.template, context, self.text, self.template_mask, context_mask, self.flag)#1 3 768
-        # save states
+        self.prompt = self.network.forward_prompt_init(self.template, context, self.text, self.template_mask, context_mask, self.flag)
+        
         self.state = init_bbox
         self.frame_id = 0
         if test:
@@ -690,11 +690,11 @@ class UVLTrack(BaseTracker):
     
     def initialize_dino(self, image, info: dict,imagepath:str):
         if self.cfg.TEST.MODE == 'NL':
-            grounding_state = self.grounding_dino(image, info) #info['init_bbox']=[262.0, 94.0, 16.0, 26.0]
+            grounding_state = self.grounding_dino(image, info) 
             init_bbox = grounding_state['pred_boxes']
             self.flag = torch.tensor([[2]]).cuda()
         elif self.cfg.TEST.MODE == 'NLBBOX':
-            text, mask = self.extract_token_from_nlp(info['language'], self.cfg.MODEL.BACKBONE.LANGUAGE.BERT.MAX_QUERY_LEN)#text:1 40 mask:1 40
+            text, mask = self.extract_token_from_nlp(info['language'], self.cfg.MODEL.BACKBONE.LANGUAGE.BERT.MAX_QUERY_LEN)
             self.text = NestedTensor(text, mask)
             init_bbox = info['init_bbox']
             self.flag = torch.tensor([[2]]).cuda()
@@ -706,31 +706,31 @@ class UVLTrack(BaseTracker):
             self.flag = torch.tensor([[0]]).cuda()
         self.window_prior()
         z_patch_arr, _, _, bbox = sample_target(image, init_bbox, self.params.template_factor,
-                                                    output_sz=self.params.template_size, return_bbox=True)#z_patch_arr:128 128 3 bbox:1 1 4
-        self.template_mask = self.anno2mask(bbox.reshape(1, 4), size=self.params.template_size//16)#1 64
+                                                    output_sz=self.params.template_size, return_bbox=True)
+        self.template_mask = self.anno2mask(bbox.reshape(1, 4), size=self.params.template_size//16)
         self.z_patch_arr = z_patch_arr
         self.template_bbox = (bbox*self.params.template_size)[0, 0].tolist()
         template = self.preprocessor.process(z_patch_arr)
         self.template = template
-        # forward the context once
+        
         y_patch_arr, _, _, y_bbox = sample_target(image, init_bbox, self.params.search_factor,
-                                                    output_sz=self.params.search_size, return_bbox=True)#y_patch_arr:256 256  y_bbox:1 1 4
+                                                    output_sz=self.params.search_size, return_bbox=True)
         self.y_patch_arr = y_patch_arr
         self.context_bbox = (y_bbox*self.params.search_size)[0, 0].tolist()
-        # save states
+        
         self.state = init_bbox
         self.frame_id = 0
         self.memory_query=None
         
-        self.kf.initialize(self.state)  # 初始检测框
+        self.kf.initialize(self.state)  
 
     def initialize_yolo(self, image, info: dict,imagepath:str):
         if self.cfg.TEST.MODE == 'NL':
-            grounding_state = self.grounding_yolo(image, info,imagepath) #info['init_bbox']=[262.0, 94.0, 16.0, 26.0]
+            grounding_state = self.grounding_yolo(image, info,imagepath) 
             init_bbox = grounding_state['target_bbox']
             self.flag = torch.tensor([[2]]).cuda()
         elif self.cfg.TEST.MODE == 'NLBBOX':
-            text, mask = self.extract_token_from_nlp(info['language'], self.cfg.MODEL.BACKBONE.LANGUAGE.BERT.MAX_QUERY_LEN)#text:1 40 mask:1 40
+            text, mask = self.extract_token_from_nlp(info['language'], self.cfg.MODEL.BACKBONE.LANGUAGE.BERT.MAX_QUERY_LEN)
             self.text = NestedTensor(text, mask)
             init_bbox = info['init_bbox']
             self.flag = torch.tensor([[2]]).cuda()
@@ -742,25 +742,25 @@ class UVLTrack(BaseTracker):
             self.flag = torch.tensor([[0]]).cuda()
         self.window_prior()
         z_patch_arr, _, _, bbox = sample_target(image, init_bbox, self.params.template_factor,
-                                                    output_sz=self.params.template_size, return_bbox=True)#z_patch_arr:128 128 3 bbox:1 1 4
-        self.template_mask = self.anno2mask(bbox.reshape(1, 4), size=self.params.template_size//16)#1 64
+                                                    output_sz=self.params.template_size, return_bbox=True)
+        self.template_mask = self.anno2mask(bbox.reshape(1, 4), size=self.params.template_size//16)
         self.z_patch_arr = z_patch_arr
         self.template_bbox = (bbox*self.params.template_size)[0, 0].tolist()
         template = self.preprocessor.process(z_patch_arr)
         self.template = template
-        # forward the context once
+        
         y_patch_arr, _, _, y_bbox = sample_target(image, init_bbox, self.params.search_factor,
-                                                    output_sz=self.params.search_size, return_bbox=True)#y_patch_arr:256 256  y_bbox:1 1 4
+                                                    output_sz=self.params.search_size, return_bbox=True)
         self.y_patch_arr = y_patch_arr
         self.context_bbox = (y_bbox*self.params.search_size)[0, 0].tolist()
-        # save states
+        
         self.state = init_bbox
         self.pre_states.append(self.state)
         
         self.frame_id = 0
         self.memory_query=None
 
-        self.kf.initialize(box_xywh_to_cxcywh(torch.Tensor(self.state)).numpy())  # 初始检测框
+        self.kf.initialize(box_xywh_to_cxcywh(torch.Tensor(self.state)).numpy())  
 
         self.pre_feat=None
 
@@ -773,24 +773,24 @@ class UVLTrack(BaseTracker):
     
 
     def track(self, image, info: dict = None):
-        H, W, _ = image.shape#480 684 3
+        H, W, _ = image.shape
         self.frame_id += 1
         x_patch_arr, resize_factor, x_amask_arr = sample_target(image, self.state, self.params.search_factor,
-                                                                output_sz=self.params.search_size)  # (x1, y1, w, h)
-        search = self.preprocessor.process(x_patch_arr)#1 3 256 256
+                                                                output_sz=self.params.search_size)  
+        search = self.preprocessor.process(x_patch_arr)
         with torch.no_grad():
             template = self.template
             out_dict = self.network.forward_test(template, search, self.text, self.prompt, self.flag)
 
-        pred_boxes = out_dict['bbox_map'].view(-1, 4).detach().cpu() # b, s, 4
-        pred_cls = out_dict['cls_score_test'].view(-1).detach().cpu() # b, s
-        pred_cont = out_dict['cont_score'].softmax(-1)[:, :, 0].view(-1).detach().cpu() if self.has_cont else 1 # b, s
+        pred_boxes = out_dict['bbox_map'].view(-1, 4).detach().cpu() 
+        pred_cls = out_dict['cls_score_test'].view(-1).detach().cpu() 
+        pred_cont = out_dict['cont_score'].softmax(-1)[:, :, 0].view(-1).detach().cpu() if self.has_cont else 1 
         pred_cls_merge = pred_cls * self.window * pred_cont
         pred_box_net = pred_boxes[torch.argmax(pred_cls_merge)]
         score = (pred_cls * pred_cont)[torch.argmax(pred_cls_merge)]
-        # Baseline: Take the mean of all pred boxes as the final result
-        pred_box = (pred_box_net * self.params.search_size / resize_factor).tolist()  # (cx, cy, w, h) [0,1]
-        # get the final box result
+        
+        pred_box = (pred_box_net * self.params.search_size / resize_factor).tolist()  
+        
         self.state = clip_box(self.map_box_back(pred_box, resize_factor), H, W, margin=10)
         
         if score > self.max_score and self.has_cont:
@@ -815,11 +815,11 @@ class UVLTrack(BaseTracker):
         
         
         
-        H, W, _ = image.shape#480 684 3
+        H, W, _ = image.shape
         self.frame_id += 1
         x_patch_arr, resize_factor, x_amask_arr = sample_target(image, self.state, self.params.search_factor,
-                                                                output_sz=self.params.search_size)  # (x1, y1, w, h)
-        search = self.preprocessor.process(x_patch_arr)[0]#1 3 256 256
+                                                                output_sz=self.params.search_size)  
+        search = self.preprocessor.process(x_patch_arr)[0]
         _,h,w=search.shape
         with torch.no_grad():
             template = self.template
@@ -830,7 +830,7 @@ class UVLTrack(BaseTracker):
                                 template=template,
                                 caption=TEXT_PROMPT,
                                 box_threshold=BOX_TRESHOLD,
-                                text_threshold=TEXT_TRESHOLD #boxes 1 4； logits 1 ；phrases white airplane landing 按照顺序排列
+                                text_threshold=TEXT_TRESHOLD 
     
                                 
                             )
@@ -860,9 +860,9 @@ class UVLTrack(BaseTracker):
 
             boxes=boxes[max_index:max_index+1]
             logits=logits[max_index:max_index+1]
-            phrases=phrases[max_index:max_index+1]  #cx,cy,w,h
-            boxes = (boxes * self.params.search_size / resize_factor)[0].tolist()  # (cx, cy, w, h)
-            boxes=clip_box(self.map_box_back(boxes, resize_factor), H, W, margin=10) # x , y , w ,h
+            phrases=phrases[max_index:max_index+1]  
+            boxes = (boxes * self.params.search_size / resize_factor)[0].tolist()  
+            boxes=clip_box(self.map_box_back(boxes, resize_factor), H, W, margin=10) 
             vis_boxes=torch.Tensor(boxes)/torch.Tensor([W,H,W,H])
             vis_boxes[0] = vis_boxes[0] + vis_boxes[2]/2
             vis_boxes[1] = vis_boxes[1] + vis_boxes[3]/2
@@ -915,7 +915,7 @@ class UVLTrack(BaseTracker):
                     lines = f.readlines()
                 texts = [[t.rstrip('\r\n')] for t in lines] + [[' ']]
             else:
-                texts = [t.strip() for t in TEXT_PROMPT.split(',')]#texts后面需要加一个' '
+                texts = [t.strip() for t in TEXT_PROMPT.split(',')]
                 texts=[["".join(texts)]]
                 texts.append([' '])
             
@@ -923,7 +923,7 @@ class UVLTrack(BaseTracker):
             
             
             
-            data_info = dict(img_id=0, img_path=frame_path, texts=texts)#图像路径:str 文本:两个list ['prompt']+['']
+            data_info = dict(img_id=0, img_path=frame_path, texts=texts)
             
             
             
@@ -961,7 +961,7 @@ class UVLTrack(BaseTracker):
 
 
             
-            template = self.template#没有归一化
+            template = self.template
             
             data_batch_template = dict(inputs=template,
                         data_samples=[data_samples],
@@ -1071,22 +1071,22 @@ class UVLTrack(BaseTracker):
         
         
         annotated_frame = annotate(image_source=image, boxes=vis_boxes[None], logits=pre_scores.reshape(1), phrases=texts[0],gt_boxes=torch.Tensor(info['gt_bbox']).reshape(1,-1),vis_pre_kf_bbox=pre_kf_boxes)
-        output_path=os.path.join('work_dir','test_otb_datasetfullpicture.jpg')#用两个模型
-        #output_path=os.path.join('work_dir','test_tnl2k_tracking.jpg')
-        #output_path=os.path.join('work_dir','test_lasot_tracking.jpg')
+        output_path=os.path.join('work_dir','test_otb_datasetfullpicture.jpg')
         
-        # pic_path='test_lasot_tracking.jpg'
-        # if frame_path is not None:
-        #     file_name=frame_path.split('/')[-1]
-        #     seq_name=info['seq_name']
-        #     pic_path=os.path.join('work_dir',seq_name+'com')
-        #     if os.path.exists(pic_path):
-        #         pass
-        #     else:
-        #         os.makedirs(pic_path)
-        #     file_name=file_name
-        #     pic_path=os.path.join(seq_name+'com',file_name)
-        # output_path=os.path.join('work_dir',pic_path)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         cv2.imwrite(output_path, annotated_frame)      
         
         
@@ -1110,8 +1110,8 @@ class UVLTrack(BaseTracker):
         gt_bbox=info['gt_bbox']
         
     
-        # pre_bbox[1]=gt_bbox[1]
-        # pre_bbox[3]=gt_bbox[1]+gt_bbox[3]
+        
+        
         
         boxes=torch.Tensor(pre_bbox)
         iou,union=box_iou(box_xywh_to_xyxy(boxes).reshape(-1,4),box_xywh_to_xyxy(torch.Tensor(gt_bbox)).reshape(-1,4))
@@ -1129,12 +1129,12 @@ class UVLTrack(BaseTracker):
         
         
     
-        H, W, _ = image.shape#480 684 3
+        H, W, _ = image.shape
         x_patch_arr, resize_factor, x_amask_arr = sample_target(image, self.state, self.params.search_factor,
-                                                                output_sz=self.params.search_size)  # (x1, y1, w, h)
-        search = self.preprocessor.process_yolo(x_patch_arr)[0]#不要归一化
+                                                                output_sz=self.params.search_size)  
+        search = self.preprocessor.process_yolo(x_patch_arr)[0]
         
-        #这里有问题
+        
         
         
         
@@ -1155,7 +1155,7 @@ class UVLTrack(BaseTracker):
                     lines = f.readlines()
                 texts = [[t.rstrip('\r\n')] for t in lines] + [[' ']]
             else:
-                texts = [t.strip() for t in TEXT_PROMPT.split(',')]#texts后面需要加一个' '
+                texts = [t.strip() for t in TEXT_PROMPT.split(',')]
                 texts=[["".join(texts)]]
                 texts.append([' '])
             
@@ -1166,7 +1166,7 @@ class UVLTrack(BaseTracker):
             
             
             
-            data_info = dict(img_id=0, img_path=frame_path, texts=texts)#图像路径:str 文本:两个list ['prompt']+['']
+            data_info = dict(img_id=0, img_path=frame_path, texts=texts)
             
             
         
@@ -1207,7 +1207,7 @@ class UVLTrack(BaseTracker):
             
             
             
-            template = self.template#没有归一化
+            template = self.template
             
             data_batch_template = dict(inputs=template,
                         data_samples=[data_samples],
@@ -1248,8 +1248,8 @@ class UVLTrack(BaseTracker):
             pre_bbox=pre_bbox
             pre_bbox=box_xyxy_to_cxcywh(pre_bbox)
             
-            boxes = (pre_bbox / resize_factor).tolist()  # (cx, cy, w, h)
-            boxes=clip_box(self.map_box_back(boxes, resize_factor), H, W, margin=10) # x , y , w ,h
+            boxes = (pre_bbox / resize_factor).tolist()  
+            boxes=clip_box(self.map_box_back(boxes, resize_factor), H, W, margin=10) 
             
             
             
@@ -1276,373 +1276,6 @@ class UVLTrack(BaseTracker):
         return {"target_bbox": self.state}
     
     
-    
-    
-    def yolo_track_tracking_templateT(self, image,model, TEXT_PROMPT,BOX_TRESHOLD,TEXT_TRESHOLD,info: dict = None,frame_path=None):
-        
-        
-    
-        H, W, _ = image.shape#480 684 3
-        x_patch_arr, resize_factor, x_amask_arr = sample_target(image, self.state, self.params.search_factor,
-                                                                output_sz=self.params.search_size)  # (x1, y1, w, h)
-        search = self.preprocessor.process(x_patch_arr)[0]#1 3 256 256
-        
-
-
-        
-    
-
-        template = self.template#没有归一化
-    
-    
-        with torch.no_grad():
-
-            
-            
-            
-            
-            if TEXT_PROMPT.endswith('.txt'):
-                with open(TEXT_PROMPT) as f:
-                    lines = f.readlines()
-                texts = [[t.rstrip('\r\n')] for t in lines] + [[' ']]
-            else:
-                texts = [t.strip() for t in TEXT_PROMPT.split(',')]#texts后面需要加一个' '
-                texts=[["".join(texts)]]
-                texts.append([' '])
-            
-            
-            
-            
-            
-            
-            
-            
-            data_info = dict(img_id=0, img_path=frame_path, texts=texts)#图像路径:str 文本:两个list ['prompt']+['']
-            
-            
-        
-            data_info = self.test_pipeline(data_info)
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-                        
-            
-            data_batch = dict(inputs=search.unsqueeze(0),
-            data_samples=[data_info['data_samples']])
-            data_samples=data_info['data_samples']
-            data_samples.set_metainfo(dict(img_shape=(self.params.search_size,self.params.search_size,3)))
-            data_samples.set_metainfo(dict(ori_shape=(self.params.search_size,self.params.search_size)))
-            data_samples.set_metainfo(dict(pad_param=np.array([0.0,0.0,0.0,0.0])))
-            
-            data_samples.set_metainfo(dict(scale_factor=(1.0,1.0)))
-            
-            
-            
-            
-            
-               
-            data_batch_template = dict(inputs=template,
-                        data_samples=[data_samples],
-                        mode = 'loss')
-    
-    
-
-
-   
-
-
-            data_batch_template = model.data_preprocessor(data_batch_template,False)
-        
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            data_batch = dict(inputs=search.unsqueeze(0),
-            data_samples=[data_samples],
-            template=template
-            )
-            
-            
-            
-            
-            
-            
-            
-    
-      
-      
-
-
-
-
-
-
-
-           
-            output = model.test_step_template_tracking(data_batch)[0]
-
-
-
-            pred_instances = output.pred_instances
-            
-            
-            #这里和历史的bboxes进行匹配，取iou最大的作为结果
-            
-            pre_bbox=pred_instances.bboxes  #300 4
-            
-            norm_prebbox=pre_bbox/torch.tensor([[W,H,W,H]])
-            
-
-           
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            
-
-
-            
-
-
-            
-            pre_bbox=box_xyxy_to_cxcywh(pre_bbox)
-        
-    
-
-            
-            boxes = pre_bbox / resize_factor  # (cx, cy, w, h)
-            boxes=clip_box_tensor(self.map_box_back_tensor(boxes, resize_factor), H, W, margin=10) # x , y , w ,h
-            
-            
-        
-        
-            
-
-            
-            gt_bbox=info['gt_bbox']
-
-
-
-
-            boxes=torch.Tensor(boxes)
-            
-            
-            gt_bbox=self.kf.predict(W=W,H=H)
-            gt_bbox=torch.tensor(gt_bbox)
-            pre_kf_bbox=gt_bbox
-
-            num_boxes,num_channel=boxes.shape
-            gt_bbox=gt_bbox[None].repeat(num_boxes,1)
-            iou,union=box_iou(box_xywh_to_xyxy(boxes).reshape(-1,4),box_xywh_to_xyxy(torch.Tensor(gt_bbox)).reshape(-1,4))
-
-            
-        
-     
-
-
-
-
-    
-
-
-            selected_index=0
-            pre_scores=pred_instances.scores
-            labels=pred_instances.labels
-
-
-
-
-
-
-            for index,pre_score in enumerate(pre_scores):
-                if iou[index]>0.7 or pre_score>0.8:
-                    selected_index=index
-                    selected_iou=[index]
-                    break
-    
-            selected_index=0
-            selected_label=labels[selected_index]
-            selected_score=pre_scores[selected_index]
-            #selected_index=torch.argmax(iou)
-    
-            print(f'selected_index:{selected_index}')
-            print(f'selected_score:{selected_score}')
-            print(f'selected_label:{selected_label}')
-            print(f'pre_kf_box:{pre_kf_bbox}')
-
-
-
-
-
-
-
-            # selected_similarity=0.0
-            # if  similarity is not None:
-            #     for index in range(0,30):
-            #         selected_similarity = similarity[index]
-
-            #         if selected_similarity > 0.8:#只有前三十个有一个大于0.8才更新
-            #             selected_index=index
-            #             break 
-            
-            # self.pre_feat=features[selected_index] 
-            # print(f'selected_similarity:{selected_similarity}')
-            
-                                
-
-        
-  
-        
-            
-            
-
-
-            
-            
-            
-            
-   
-            pre_bbox=pred_instances.bboxes[selected_index]
-            
-            
-            pre_scores=pred_instances.scores[selected_index]
-            
-            
-            pre_bbox=pre_bbox
-            pre_bbox=box_xyxy_to_cxcywh(pre_bbox)
-            
-            boxes = (pre_bbox / resize_factor).tolist()  # (cx, cy, w, h)
-
-            boxes=clip_box(self.map_box_back(boxes, resize_factor), H, W, margin=10) # x , y , w ,h
-
-            
-            vis_boxes=torch.Tensor(boxes)
-
-            
-            vis_pre_kf_bbox=torch.Tensor(pre_kf_bbox)
-
-        
-        
-        
-        
-        
-        annotated_frame = annotate(image_source=image, boxes=vis_boxes[None], logits=pre_scores.reshape(1), phrases=texts[0],gt_boxes=torch.Tensor(info['gt_bbox']).reshape(1,-1))
-        output_path=os.path.join('work_dir','vis_result/test_otb_dataset.jpg')
-        #output_path=os.path.join('work_dir','test_otb_datasetfullpicture.jpg')
-        #output_path=os.path.join('work_dir','test_tnl2k_tracking.jpg')
-        #output_path=os.path.join('work_dir','test_lasot_tracking.jpg')
-        
-        # pic_path='test_lasot_tracking.jpg'
-        # if frame_path is not None:
-        #     file_name=frame_path.split('/')[-1]
-        #     seq_name=info['seq_name']
-        #     pic_path=os.path.join('work_dir',seq_name+'com')
-        #     if os.path.exists(pic_path):
-        #         pass
-        #     else:
-        #         os.makedirs(pic_path)
-        #     file_name=file_name
-        #     pic_path=os.path.join(seq_name+'com',file_name)
-        # output_path=os.path.join('work_dir',pic_path)
-        cv2.imwrite(output_path, annotated_frame)
-            
-
-            
-            
-                            
-        
-        
-        
-        
-        
-        
-        
-        gt_bbox=info['gt_bbox']
-        boxes=torch.Tensor(boxes)
-        iou,union=box_iou(box_xywh_to_xyxy(boxes).reshape(-1,4),box_xywh_to_xyxy(torch.Tensor(gt_bbox)).reshape(-1,4))
-        print(f'iou:{iou}') 
-        
-    
-        
-
-        
-
-
-        self.state= boxes.numpy()
-
-
-        self.kf.update(self.state)
-        
-
-
-        # with open("work_dir/output.txt","a") as f:
-        #     f.write(f'----------------------------\n')
-        #     f.write(f'iou:{iou}\n')
-        #     f.write(f'selected_index:{selected_index}\n')
-        #     f.write(f'pre_kf_box:{pre_kf_bbox}\n')
-        #     f.write(f'pre_box:{self.state}\n')
-        #     f.write(f'gt_box:{gt_bbox}\n')
-        #     f.write(f'pre_scores:{pre_scores}\n')
-        #     f.write(f'prediction_gt_dist:{prediction_gt_dist}\n')
-        #     f.write(f'prediction_gt_size_diff:{prediction_gt_size_diff}\n')
-        #     f.write(f'predicion_pre_dist:{predicion_pre_dist}\n')
-        #     f.write(f'predicion_pre_size_diff:{predicion_pre_size_diff}\n')
-        #     f.write(f'unpredicion_pre_dist:{unpredicion_pre_dist}\n')
-        #     f.write(f'unpredicion_pre_size_diff:{unpredicion_pre_size_diff}\n')
-        #     f.write(f'----------------------------\n')
-            
-
-
-
-
-   
-        return {"target_bbox": self.state}
-    
-
-
     
     
 
@@ -1651,24 +1284,23 @@ class UVLTrack(BaseTracker):
         
         
     
-        H, W, _ = image.shape#480 684 3
+        H, W, _ = image.shape
         x_patch_arr, resize_factor, x_amask_arr = sample_target(image, self.state, self.params.search_factor,
-                                                                output_sz=self.params.search_size)  # (x1, y1, w, h)
-        search = self.preprocessor.process(x_patch_arr)[0]#1 3 256 256
+                                                                output_sz=self.params.search_size)  
+        search = self.preprocessor.process(x_patch_arr)[0]
         
 
         save_path="work_dir/vis_result/"
-        #save_search_with_plt(search,save_path+"search_image.png")
+        
         
         
         
     
 
-        template = self.template#没有归一化 动态template？ 1 3 128 128
-        # 自动归一化到 [0, 1]，避免图像太暗或无法保存
+        template = self.template
         template -= template.min()
         template /= template.max() + 1e-5
-        #TF.to_pil_image(template[0]).save(save_path+"template.png")
+        
 
             
         with torch.no_grad():
@@ -1682,7 +1314,7 @@ class UVLTrack(BaseTracker):
                     lines = f.readlines()
                 texts = [[t.rstrip('\r\n')] for t in lines] + [[' ']]
             else:
-                texts = [t.strip() for t in TEXT_PROMPT.split(',')]#texts后面需要加一个' '
+                texts = [t.strip() for t in TEXT_PROMPT.split(',')]
                 texts=[["".join(texts)]]
                 texts.append([' '])
             
@@ -1693,7 +1325,7 @@ class UVLTrack(BaseTracker):
             
             
             
-            data_info = dict(img_id=0, img_path=frame_path, texts=texts)#图像路径:str 文本:两个list ['prompt']+['']
+            data_info = dict(img_id=0, img_path=frame_path, texts=texts)
             
             
         
@@ -1779,16 +1411,16 @@ class UVLTrack(BaseTracker):
 
            
             output = model.test_step_template_tracking(data_batch)[0]
-            current_image_feature=output.current_img_feature #3 256 40 40
-            #save_attention_maps(current_image_feature,save_dir="work_dir/vis_result/")
+            current_image_feature=output.current_img_feature 
+            
 
-            current_txt_feats=output.current_txt_feats #1 2 768
+            current_txt_feats=output.current_txt_feats 
 
-            saved_cls_and_box=output.saved_cls_and_box #1 2 768
-            saved_cls,saved_box=saved_cls_and_box  #saved_cls:3 [1 2 w h] 分别用框截取第二个特征map
-                                                   # saved_box:3 [1 4 w h]
+            saved_cls_and_box=output.saved_cls_and_box 
+            saved_cls,saved_box=saved_cls_and_box  
+                                                   
 
-            low_image_feature=current_image_feature[0]#256 40 40
+            low_image_feature=current_image_feature[0]
 
 
 
@@ -1804,46 +1436,45 @@ class UVLTrack(BaseTracker):
             len_selected=10
 
             
-            #这里和历史的bboxes进行匹配，取iou最大的作为结果
             
-            pre_bbox=pred_instances.bboxes  #300 4
+            pre_bbox=pred_instances.bboxes  
 
             norm_pre_bbox=pre_bbox/torch.tensor([W,H,W,H])
             
             norm_pre_bbox=norm_pre_bbox[0:len_selected]
 
            
-            # 预处理
+            
             low_image_feature=low_image_feature[0]
             C, feat_height, feat_width = low_image_feature.shape
 
-            # 将归一化 box 转换为像素坐标
+            
             boxes = norm_pre_bbox.clone()
-            boxes[:, [0, 2]] = boxes[:, [0, 2]] * feat_width  # x1, x2
-            boxes[:, [1, 3]] = boxes[:, [1, 3]] * feat_height  # y1, y2
+            boxes[:, [0, 2]] = boxes[:, [0, 2]] * feat_width  
+            boxes[:, [1, 3]] = boxes[:, [1, 3]] * feat_height  
 
-            # 限制在边界内，防止越界
-            boxes[:, 0::2] = boxes[:, 0::2].clamp(0, feat_width - 1)  # x1, x2
-            boxes[:, 1::2] = boxes[:, 1::2].clamp(0, feat_height - 1)  # y1, y2
+            
+            boxes[:, 0::2] = boxes[:, 0::2].clamp(0, feat_width - 1)  
+            boxes[:, 1::2] = boxes[:, 1::2].clamp(0, feat_height - 1)  
 
-            # 开始提取区域特征
+            
             features = []
             for i in range(boxes.shape[0]):
                 x1, y1, x2, y2 = boxes[i]
                 x1, y1, x2, y2 = int(x1.item()), int(y1.item()), int(x2.item()), int(y2.item())
 
-                # 防止 box 为 0 尺寸
+                
                 if x2 <= x1 or y2 <= y1:
-                    patch = torch.zeros(C).cuda()  # 空区域用0向量代替
+                    patch = torch.zeros(C).cuda()  
                 else:
-                    patch = low_image_feature[:, y1:y2+1, x1:x2+1]  # C, h, w
-                    patch = patch.mean(dim=(1, 2))  # 对 h, w 维度平均 -> (C,)
+                    patch = low_image_feature[:, y1:y2+1, x1:x2+1]  
+                    patch = patch.mean(dim=(1, 2))  
                 
                 
                 
                 features.append(patch)
 
-            features = torch.stack(features, dim=0)  # shape = (300, 256)
+            features = torch.stack(features, dim=0)  
 
          
 
@@ -1873,8 +1504,8 @@ class UVLTrack(BaseTracker):
 
 
             
-            boxes = pre_bbox / resize_factor  # (cx, cy, w, h)
-            boxes=clip_box_tensor(self.map_box_back_tensor(boxes, resize_factor), H, W, margin=10) # x , y , w ,h
+            boxes = pre_bbox / resize_factor  
+            boxes=clip_box_tensor(self.map_box_back_tensor(boxes, resize_factor), H, W, margin=10) 
             
 
             
@@ -1890,13 +1521,13 @@ class UVLTrack(BaseTracker):
          
             boxes=torch.Tensor(boxes)
             gt_bbox=torch.tensor(gt_bbox)
-            #gt_bbox=self.kf.predict(W=W,H=H)
-            #gt_bbox=box_cxcywh_to_xywh(gt_bbox)
+            
+            
             
     
             
-            #关键在score
-            #基于文本的动态特征选择
+            
+            
             
             pre_kf_bbox=gt_bbox
 
@@ -1941,10 +1572,10 @@ class UVLTrack(BaseTracker):
             else:
                 vec_stack = torch.stack(self.memory_feature, dim=0)
 
-                # 按行求平均，得到一个 shape 为 (256,) 的平均向量
+                
                 avg_vector = vec_stack.mean(dim=0)
-                # 计算余弦相似度，dim=1 表示在特征维度上计算
-                cos_sim = F.cosine_similarity(features, avg_vector, dim=1)  # shape: (300,)
+                
+                cos_sim = F.cosine_similarity(features, avg_vector, dim=1)  
 
              
               
@@ -2008,9 +1639,9 @@ class UVLTrack(BaseTracker):
             pre_bbox=pre_bbox
             pre_bbox=box_xyxy_to_cxcywh(pre_bbox)
             
-            boxes = (pre_bbox / resize_factor).tolist()  # (cx, cy, w, h)
+            boxes = (pre_bbox / resize_factor).tolist()  
 
-            boxes=clip_box(self.map_box_back(boxes, resize_factor), H, W, margin=10) # x , y , w ,h
+            boxes=clip_box(self.map_box_back(boxes, resize_factor), H, W, margin=10) 
 
             
             vis_boxes=torch.Tensor(boxes)
@@ -2060,8 +1691,8 @@ class UVLTrack(BaseTracker):
         print(f'iou:{iou}') 
 
 
-        # with open(iou_path,"a") as f:
-        #     f.write(str(iou.item())+'\n')
+        
+        
         
     
         
@@ -2106,12 +1737,12 @@ class UVLTrack(BaseTracker):
         
         
     
-        H, W, _ = image.shape#480 684 3
+        H, W, _ = image.shape
         x_patch_arr, resize_factor, x_amask_arr = sample_target(image, self.state, self.params.search_factor,
-                                                                output_sz=self.params.search_size)  # (x1, y1, w, h)
-        search = self.preprocessor.process_yolo(x_patch_arr)[0]#1 3 256 256
+                                                                output_sz=self.params.search_size)  
+        search = self.preprocessor.process_yolo(x_patch_arr)[0]
         
-        #这里有问题
+        
         
         
         
@@ -2130,7 +1761,7 @@ class UVLTrack(BaseTracker):
                     lines = f.readlines()
                 texts = [[t.rstrip('\r\n')] for t in lines] + [[' ']]
             else:
-                texts = [t.strip() for t in TEXT_PROMPT.split(',')]#texts后面需要加一个' '
+                texts = [t.strip() for t in TEXT_PROMPT.split(',')]
                 texts=[["".join(texts)]]
                 texts.append([' '])
             
@@ -2141,7 +1772,7 @@ class UVLTrack(BaseTracker):
             
             
             
-            data_info = dict(img_id=0, img_path=frame_path, texts=texts)#图像路径:str 文本:两个list ['prompt']+['']
+            data_info = dict(img_id=0, img_path=frame_path, texts=texts)
             
             
             
@@ -2188,8 +1819,8 @@ class UVLTrack(BaseTracker):
             pre_bbox=pre_bbox
             pre_bbox=box_xyxy_to_cxcywh(pre_bbox)
             
-            boxes = (pre_bbox / resize_factor).tolist()  # (cx, cy, w, h)
-            boxes=clip_box(self.map_box_back(boxes, resize_factor), H, W, margin=10) # x , y , w ,h
+            boxes = (pre_bbox / resize_factor).tolist()  
+            boxes=clip_box(self.map_box_back(boxes, resize_factor), H, W, margin=10) 
             
             
             
@@ -2235,24 +1866,24 @@ class UVLTrack(BaseTracker):
 
 
 
-        H, W, _ = image.shape#480 684 3
+        H, W, _ = image.shape
         self.frame_id += 1
         x_patch_arr, resize_factor, x_amask_arr = sample_target(image, self.state, self.params.search_factor,
-                                                                output_sz=self.params.search_size)  # (x1, y1, w, h)
-        search = self.preprocessor.process(x_patch_arr)[0]#1 3 256 256
+                                                                output_sz=self.params.search_size)  
+        search = self.preprocessor.process(x_patch_arr)[0]
         _,h,w=search.shape
         with torch.no_grad():
             
             template = self.template
-            # if self.cfg.TEST.MODE == 'NL':
-            #     template=None
+            
+            
             boxes, logits, phrases,memory_query= predict(
                             model=model,
                             image=search,
                             template=template,
                             caption=TEXT_PROMPT,
                             box_threshold=BOX_TRESHOLD,
-                            text_threshold=TEXT_TRESHOLD, #boxes 1 4； logits 1 ；phrases white airplane landing 按照顺序排列
+                            text_threshold=TEXT_TRESHOLD, 
                             memeory_query=self.memory_query,
                             MEMORY_SEQENCE=True
                             
@@ -2262,16 +1893,16 @@ class UVLTrack(BaseTracker):
             
             gt_bbox=info['gt_bbox']
 
-            # if sum(v == 0 for v in gt_bbox) >= 3:#如果真值无效
-            #     self.state=gt_bbox+0.1
-            #     return {"target_bbox": self.state}
+            
+            
+            
 
 
-            boxes = (boxes * self.params.search_size / resize_factor) # (cx, cy, w, h)
-            boxes=clip_box_tensor(self.map_box_back_tensor(boxes, resize_factor), H, W, margin=10) # x, y , w ,h
+            boxes = (boxes * self.params.search_size / resize_factor) 
+            boxes=clip_box_tensor(self.map_box_back_tensor(boxes, resize_factor), H, W, margin=10) 
 
             boxes=torch.Tensor(boxes)
-            #gt_bbox=self.kf.predict(W=W,H=H)
+            
             gt_bbox=torch.tensor(gt_bbox)
             pre_kf_bbox=gt_bbox
             num_boxes,num_channel=boxes.shape
@@ -2292,7 +1923,7 @@ class UVLTrack(BaseTracker):
             boxes=boxes[selected_index:selected_index+1]
             logits=logits[selected_index:selected_index+1]
             selected_score=logits
-            phrases=phrases[selected_index:selected_index+1]  #cx,cy,w,h
+            phrases=phrases[selected_index:selected_index+1]  
             vis_boxes=boxes
             
 
@@ -2317,7 +1948,7 @@ class UVLTrack(BaseTracker):
         
         
     
-        # cv2.imwrite(output_path, annotated_frame)
+        
         
         gt_bbox=info['gt_bbox']
         iou,union=box_iou(box_xywh_to_xyxy(torch.Tensor(boxes).reshape(-1,4)),box_xywh_to_xyxy(torch.Tensor(gt_bbox)).reshape(-1,4))
@@ -2336,7 +1967,7 @@ class UVLTrack(BaseTracker):
     
 
     def save_visualization(self, image, vis_info):
-        # save_name = os.path.join(self.save_dir, self.params.yaml_name+'_vis', vis_info['name'], '%.4d'%self.frame_id)
+        
         save_name = self.save_dir
         if not os.path.exists(os.path.join(save_name)):
             os.makedirs(save_name)
@@ -2394,17 +2025,17 @@ class UVLTrack(BaseTracker):
 
     def map_box_back_batch(self, pred_box: torch.Tensor, resize_factor: float):
         cx_prev, cy_prev = self.state[0] + 0.5 * self.state[2], self.state[1] + 0.5 * self.state[3]
-        cx, cy, w, h = pred_box.unbind(-1) # (N,4) --> (N,)
+        cx, cy, w, h = pred_box.unbind(-1) 
         half_side = 0.5 * self.params.search_size / resize_factor
         cx_real = cx + (cx_prev - half_side)
         cy_real = cy + (cy_prev - half_side)
         return torch.stack([cx_real - 0.5 * w, cy_real - 0.5 * h, w, h], dim=-1)
         
     def anno2mask(self, gt_bboxes, size):
-        bboxes = box_xywh_to_xyxy(gt_bboxes)*size # b, 4
-        cood = torch.arange(size).unsqueeze(0).repeat(gt_bboxes.shape[0], 1)+0.5 # b, sz
-        x_mask = ((cood > bboxes[:, 0:1]) & (cood < bboxes[:, 2:3])).unsqueeze(1) # b, 1, w
-        y_mask = ((cood > bboxes[:, 1:2]) & (cood < bboxes[:, 3:4])).unsqueeze(2) # b, h, 1
+        bboxes = box_xywh_to_xyxy(gt_bboxes)*size 
+        cood = torch.arange(size).unsqueeze(0).repeat(gt_bboxes.shape[0], 1)+0.5 
+        x_mask = ((cood > bboxes[:, 0:1]) & (cood < bboxes[:, 2:3])).unsqueeze(1) 
+        y_mask = ((cood > bboxes[:, 1:2]) & (cood < bboxes[:, 3:4])).unsqueeze(2) 
         mask = (x_mask & y_mask)
 
         cx = ((bboxes[:, 0]+bboxes[:, 2])/2).long()
@@ -2425,7 +2056,7 @@ class UVLTrack(BaseTracker):
         nlp_token = self.tokenizer.tokenize(nlp)
         if len(nlp_token) > seq_length - 2:
             nlp_token = nlp_token[0:(seq_length - 2)]
-        # build tokens and token_ids
+        
         tokens = []
         input_type_ids = []
         tokens.append("[CLS]")
@@ -2433,16 +2064,16 @@ class UVLTrack(BaseTracker):
         for token in nlp_token:
             tokens.append(token)
             input_type_ids.append(0)
-        tokens.append("[SEP]")#给每个token前面加一个cls后面加一个seq选项
+        tokens.append("[SEP]")
         input_type_ids.append(0)
-        input_ids = self.tokenizer.convert_tokens_to_ids(tokens)#将token转化为id
+        input_ids = self.tokenizer.convert_tokens_to_ids(tokens)
 
-        # The mask has 1 for real tokens and 0 for padding tokens. Only real
-        # tokens are attended to.
+        
+        
         input_mask = [1] * len(input_ids)
 
-        # Zero-pad up to the sequence length.
-        while len(input_ids) < seq_length:#将长度进行补全
+        
+        while len(input_ids) < seq_length:
             input_ids.append(0)
             input_mask.append(0)
             input_type_ids.append(0)

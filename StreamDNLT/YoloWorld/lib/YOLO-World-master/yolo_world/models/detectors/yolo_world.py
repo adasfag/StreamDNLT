@@ -1,4 +1,4 @@
-# Copyright (c) Tencent Inc. All rights reserved.
+
 from typing import List, Tuple, Union
 import torch
 import torch.nn as nn
@@ -30,7 +30,7 @@ class YOLOWorldDetector(YOLODetector):
         
         self.num_level=3
         
-        #存储的query目标
+        
         self.num_query_memory=6
         self.query_memory_tgt_adapter_1= nn.Embedding(self.num_query_memory, 256)
         self.query_memory_tgt_pos_adapter_1 = nn.Embedding(self.num_query_memory, 256)
@@ -58,7 +58,7 @@ class YOLOWorldDetector(YOLODetector):
         self.memory_sequence_update_text_adapter=CosineAttentionFusion(512)
         
         
-        #用于对文本特征进行动态更新的参数
+        
         self.memory_query_init_1=nn.Parameter(torch.randn(6, 256))
         
         self.combined_visual_feature_text1=nn.Embedding(16, 512)
@@ -246,7 +246,7 @@ class YOLOWorldDetector(YOLODetector):
 
 
 
-        #template_inputs=None
+        
         img_feats, txt_feats = self.extract_feat(batch_inputs,
                                                 batch_data_samples,
                                                 template_inputs)
@@ -257,17 +257,17 @@ class YOLOWorldDetector(YOLODetector):
             
             bs,c,h,w=img_feat.shape
         
-            tgt_ = img_feat.permute(0,2,3,1).reshape(bs,h*w,c)#32 6 256 appearance
-            memory_text_=txt_feats #32 13 256 semantic
+            tgt_ = img_feat.permute(0,2,3,1).reshape(bs,h*w,c)
+            memory_text_=txt_feats 
 
             
-            query_=self.combine_feature_memory(tgt_,memory_text_,index_i)#32 6 256
+            query_=self.combine_feature_memory(tgt_,memory_text_,index_i)
             
             batches,num_query,num_channel=tgt_.shape
             times=4
             bs=batches//times
 
-            query_=query_.reshape(times,bs,self.num_query_memory,num_channel)#时间按照顺序排列 2 16 6 256
+            query_=query_.reshape(times,bs,self.num_query_memory,num_channel)
             
             updated_query_=torch.zeros_like(query_)
             
@@ -277,12 +277,12 @@ class YOLOWorldDetector(YOLODetector):
             for index in range(times):
                 if index<1:
                     pre_query=  memory_query_init
-                    updated_query_[index]=pre_query#更新后的query为下一帧
+                    updated_query_[index]=pre_query
                 else:
-                    now_query_=query_[index-1]#16 6 256
+                    now_query_=query_[index-1]
                     pre_query=self.temporal_feature_fusion_adapter[index_i](tgt=pre_query,memory=now_query_,memory_pos=None)
                     updated_query_[index]=pre_query
-            query_=query_.reshape(times*bs,self.num_query_memory,num_channel)#时间按照顺序排列 2 16 6 256
+            query_=query_.reshape(times*bs,self.num_query_memory,num_channel)
             updated_query_=updated_query_.reshape(times*bs,self.num_query_memory,num_channel)
             
             memory=self.memory_sequence_adapter[index_i](q=tgt_,k=updated_query_,v=updated_query_)
@@ -309,7 +309,7 @@ class YOLOWorldDetector(YOLODetector):
 
 
 
-        #template_inputs=None
+        
         img_feats, txt_feats = self.extract_feat(batch_inputs,
                                                 batch_data_samples,
                                                 template_inputs)
@@ -320,17 +320,17 @@ class YOLOWorldDetector(YOLODetector):
             
             bs,c,h,w=img_feat.shape
         
-            tgt_ = img_feat.permute(0,2,3,1).reshape(bs,h*w,c)#32 6 256 appearance
-            memory_text_=txt_feats #32 13 256 semantic
+            tgt_ = img_feat.permute(0,2,3,1).reshape(bs,h*w,c)
+            memory_text_=txt_feats 
 
             
-            query_=self.combine_feature_memory(tgt_,memory_text_,index_i)#32 6 256
+            query_=self.combine_feature_memory(tgt_,memory_text_,index_i)
             
             batches,num_query,num_channel=tgt_.shape
             times=4
             bs=batches//times
 
-            query_=query_.reshape(times,bs,self.num_query_memory,num_channel)#时间按照顺序排列 2 16 6 256
+            query_=query_.reshape(times,bs,self.num_query_memory,num_channel)
             
             updated_query_=torch.zeros_like(query_)
             
@@ -340,12 +340,12 @@ class YOLOWorldDetector(YOLODetector):
             for index in range(times):
                 if index<1:
                     pre_query=  memory_query_init
-                    updated_query_[index]=pre_query#更新后的query为下一帧
+                    updated_query_[index]=pre_query
                 else:
-                    now_query_=query_[index-1]#16 6 256
+                    now_query_=query_[index-1]
                     pre_query=self.temporal_feature_fusion_adapter[index_i](tgt=pre_query,memory=now_query_,memory_pos=None)
                     updated_query_[index]=pre_query
-            query_=query_.reshape(times*bs,self.num_query_memory,num_channel)#时间按照顺序排列 2 16 6 256
+            query_=query_.reshape(times*bs,self.num_query_memory,num_channel)
             updated_query_=updated_query_.reshape(times*bs,self.num_query_memory,num_channel)
             
             memory=self.memory_sequence_adapter[index_i](q=tgt_,k=updated_query_,v=updated_query_)
@@ -356,18 +356,18 @@ class YOLOWorldDetector(YOLODetector):
 
 
 
-        #使用当前帧的图像特征用来更新文本特征
+        
         updated_query_=[]
         for index_i,img_feat in enumerate(img_feats):
             
             bs,c,h,w=img_feat.shape
         
-            tgt_ = img_feat.permute(0,2,3,1).reshape(bs,h*w,c)#32 6 256 appearance
+            tgt_ = img_feat.permute(0,2,3,1).reshape(bs,h*w,c)
     
             if index_i ==0:
                 tgt_=self.visual_feature_project(tgt_)
             
-            query_=self.combine_feature_memory_for_text(tgt_,index_i)#32 6 256
+            query_=self.combine_feature_memory_for_text(tgt_,index_i)
             updated_query_.append(query_)
 
         updated_query_=torch.cat(updated_query_,dim=1)
@@ -405,22 +405,22 @@ class YOLOWorldDetector(YOLODetector):
 
 
 
-    def combine_feature(self, tgt_,index):#设计一种方案用来当前帧聚合appear text 和pos
-        #tgt_ 32 6 256
-        #memory_text 32 13 256
-        #refpoint_embed_ 32 6 4
+    def combine_feature(self, tgt_,index):
+        
+        
+        
         
         bs,num_query,num_channel=tgt_.shape
         
         query_ = (
                     self.query_spatial_tgt_adapter[index].weight[:, None, :].repeat(1, bs, 1).transpose(0, 1)
-                ) # 6 32 256
+                ) 
         
         query_pos_ = (
                     self.query_spatial_tgt_pos_adapter[index].weight[:, None, :].repeat(1, bs, 1).transpose(0, 1)
-                ) # 6 32 256
+                ) 
                 
-        query_=self.appearance_spatial_feature_fusion_adapter[index](tgt=query_,pos=query_pos_,memory=tgt_,memory_pos=None)#32 6 256
+        query_=self.appearance_spatial_feature_fusion_adapter[index](tgt=query_,pos=query_pos_,memory=tgt_,memory_pos=None)
         
         
         
@@ -430,10 +430,10 @@ class YOLOWorldDetector(YOLODetector):
     
     
     
-    def combine_feature_memory(self, tgt_,memory_text_,index):#设计一种方案用来当前帧聚合appear text 和pos
-        #tgt_ 32 6 256
-        #memory_text 32 13 256
-        #refpoint_embed_ 32 6 4
+    def combine_feature_memory(self, tgt_,memory_text_,index):
+        
+        
+        
         
         bs,num_query,num_channel=tgt_.shape
         
@@ -441,39 +441,39 @@ class YOLOWorldDetector(YOLODetector):
         
         query_ = (
                     self.query_memory_tgt_adapter[index].weight[:, None, :].repeat(1, bs, 1).transpose(0, 1)
-                ) # 6 32 256
+                ) 
         
         query_pos_ = (
                     self.query_memory_tgt_pos_adapter[index].weight[:, None, :].repeat(1, bs, 1).transpose(0, 1)
-                ) # 6 32 256
+                ) 
                 
-        query_=self.appearance_feature_fusion_adapter[index](tgt=query_,pos=query_pos_,memory=tgt_,memory_pos=None)#32 6 256
+        query_=self.appearance_feature_fusion_adapter[index](tgt=query_,pos=query_pos_,memory=tgt_,memory_pos=None)
          
-        query_=self.text_feature_fusion_adapter[index](tgt=query_,pos=query_pos_,memory=memory_text_,memory_pos=None)#32 6 256
+        query_=self.text_feature_fusion_adapter[index](tgt=query_,pos=query_pos_,memory=memory_text_,memory_pos=None)
         
         
         
         return query_ 
     
 
-    def combine_feature_memory_for_text(self, tgt_,index):#设计一种方案用来当前帧聚合appear text 和pos
-        #tgt_ 32 6 256
-        #memory_text 32 13 256
-        #refpoint_embed_ 32 6 4
+    def combine_feature_memory_for_text(self, tgt_,index):
+        
+        
+        
         
         bs,num_query,num_channel=tgt_.shape
         
         query_ = (
                     self.combined_visual_feature_text[index].weight[:, None, :].repeat(1, bs, 1).transpose(0, 1)
-                ) # 6 32 256
+                ) 
         
         query_pos_ = (
                     self.combined_visual_feature_text_pos[index].weight[:, None, :].repeat(1, bs, 1).transpose(0, 1)
-                ) # 6 32 256
+                ) 
                 
         
      
-        query_=self.combined_visual_feature_fusion_adapter[index](tgt=query_,pos=query_pos_,memory=tgt_,memory_pos=None)#32 6 256
+        query_=self.combined_visual_feature_fusion_adapter[index](tgt=query_,pos=query_pos_,memory=tgt_,memory_pos=None)
          
       
         
@@ -500,10 +500,10 @@ class YOLOWorldDetector(YOLODetector):
         (batch_data_samples,template)=batch_data_samples
         
         
-        #template=None
+        
         img_feats, txt_feats = self.extract_feat(batch_inputs,
                                                  batch_data_samples,
-                                                 template)#提取多尺度图像特征和文本特征
+                                                 template)
         
         
         memory_img_feats=[]
@@ -516,11 +516,11 @@ class YOLOWorldDetector(YOLODetector):
             
             bs,c,h,w=img_feat.shape
         
-            tgt_ = img_feat.permute(0,2,3,1).reshape(bs,h*w,c)#32 6 256 appearance
-            memory_text_=txt_feats #32 13 256 semantic
+            tgt_ = img_feat.permute(0,2,3,1).reshape(bs,h*w,c)
+            memory_text_=txt_feats 
 
             
-            query_=self.combine_feature_memory(tgt_,memory_text_,index_i)#32 6 256
+            query_=self.combine_feature_memory(tgt_,memory_text_,index_i)
             
             
             
@@ -549,7 +549,7 @@ class YOLOWorldDetector(YOLODetector):
         
         
         
-        self.bbox_head.num_classes = txt_feats[0].shape[0]#通过文本数量确定输出的bbox类别数量为13
+        self.bbox_head.num_classes = txt_feats[0].shape[0]
         results_list = self.bbox_head.predict(memory_img_feats,
                                               txt_feats,
                                               batch_data_samples,
@@ -572,10 +572,10 @@ class YOLOWorldDetector(YOLODetector):
         (batch_data_samples,template)=batch_data_samples
         
         
-        #template=None
+        
         img_feats, txt_feats = self.extract_feat(batch_inputs,
                                                  batch_data_samples,
-                                                 template)#提取多尺度图像特征和文本特征 -0.1954 -0.2667
+                                                 template)
         
         if template is not None:
             memory_img_feats=[]
@@ -588,11 +588,11 @@ class YOLOWorldDetector(YOLODetector):
                 
                 bs,c,h,w=img_feat.shape
             
-                tgt_ = img_feat.permute(0,2,3,1).reshape(bs,h*w,c)#32 6 256 appearance
-                memory_text_=txt_feats #32 13 256 semantic
+                tgt_ = img_feat.permute(0,2,3,1).reshape(bs,h*w,c)
+                memory_text_=txt_feats 
 
                 
-                query_=self.combine_feature_memory(tgt_,memory_text_,index_i)#32 6 256
+                query_=self.combine_feature_memory(tgt_,memory_text_,index_i)
                 
                 
                 
@@ -614,18 +614,18 @@ class YOLOWorldDetector(YOLODetector):
 
 
 
-            #使用当前帧的图像特征用来更新文本特征
+            
             updated_query_=[]
             for index_i,img_feat in enumerate(img_feats):
                 
                 bs,c,h,w=img_feat.shape
             
-                tgt_ = img_feat.permute(0,2,3,1).reshape(bs,h*w,c)#32 6 256 appearance
+                tgt_ = img_feat.permute(0,2,3,1).reshape(bs,h*w,c)
         
                 if index_i ==0:
                     tgt_=self.visual_feature_project(tgt_)
                 
-                query_=self.combine_feature_memory_for_text(tgt_,index_i)#32 6 256
+                query_=self.combine_feature_memory_for_text(tgt_,index_i)
                 updated_query_.append(query_)
 
             updated_query_=torch.cat(updated_query_,dim=1)
@@ -646,7 +646,7 @@ class YOLOWorldDetector(YOLODetector):
         
         
         
-        self.bbox_head.num_classes = txt_feats[0].shape[0]#通过文本数量确定输出的bbox类别数量为13
+        self.bbox_head.num_classes = txt_feats[0].shape[0]
         results_list = self.bbox_head.predict(memory_img_feats,
                                               txt_feats,
                                               batch_data_samples,
@@ -660,7 +660,7 @@ class YOLOWorldDetector(YOLODetector):
         return batch_data_samples
 
     def reparameterize(self, texts: List[List[str]]) -> None:
-        # encode text embeddings into the detector
+        
         self.texts = texts
         self.text_feats = self.backbone.forward_text(texts)
 
@@ -699,10 +699,10 @@ class YOLOWorldDetector(YOLODetector):
         else:
             raise TypeError('batch_data_samples should be dict or list.')
         if txt_feats is not None:
-            # forward image only
+            
             img_feats = self.backbone.forward_image(batch_inputs)
         else:
-            img_feats, txt_feats = self.backbone(batch_inputs, texts)#0.9430 -0.0297
+            img_feats, txt_feats = self.backbone(batch_inputs, texts)
         
         
         
@@ -718,15 +718,15 @@ class YOLOWorldDetector(YOLODetector):
                 
                 bs,c,h,w=img_feat.shape
             
-                tgt_ = img_feat.permute(0,2,3,1).reshape(bs,h*w,c)#32 6 256 appearance
+                tgt_ = img_feat.permute(0,2,3,1).reshape(bs,h*w,c)
                 
                 
                 template_img_feat=template_img_feats[index_i].detach()
                 
-                template_query_=template_img_feat.permute(0,2,3,1).reshape(bs,-1,c)#32 6 256 appearance
+                template_query_=template_img_feat.permute(0,2,3,1).reshape(bs,-1,c)
 
                 
-                query_=self.combine_feature(template_query_,index_i)#32 6 256
+                query_=self.combine_feature(template_query_,index_i)
 
                 
                 enhance_img_feat=self.spatial_sequence_adapter_adapter[index_i](q=tgt_,k=query_,v=query_)
@@ -779,7 +779,7 @@ class SimpleYOLOWorldDetector(YOLODetector):
                 self.embeddings = torch.nn.Parameter(
                     torch.from_numpy(np.load(embedding_path)).float())
             else:
-                # random init
+                
                 embeddings = nn.functional.normalize(torch.randn(
                     (num_prompts, prompt_dim)),
                                                      dim=-1)
@@ -855,11 +855,11 @@ class SimpleYOLOWorldDetector(YOLODetector):
             self, batch_inputs: Tensor,
             batch_data_samples: SampleList) -> Tuple[Tuple[Tensor], Tensor]:
         """Extract features."""
-        # only image features
+        
         img_feats, _ = self.backbone(batch_inputs, None)
 
         if not self.reparameterized:
-            # use embeddings
+            
             txt_feats = self.embeddings[None]
             if self.adapter is not None:
                 txt_feats = self.adapter(txt_feats) + txt_feats

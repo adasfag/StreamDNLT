@@ -41,7 +41,7 @@ class DINOTrackActor(BaseActor):
             loss    - the training loss
             status  -  dict containing detailed losses
         """
-        # forward pass
+        
     
     
     
@@ -57,15 +57,15 @@ class DINOTrackActor(BaseActor):
 
 
 
-        # try:
+        
         loss_dic = self.forward_pass(data)
-        # pred_logits [6,16,900,256]                  pred_boxes:[6,16,900,4]
+        
 
         
         
         
         
-        # compute losses
+        
         
         
         
@@ -77,10 +77,10 @@ class DINOTrackActor(BaseActor):
 
 
     def forward_pass(self, data):
-        _, b, _, ht, wt = data['template_images'].shape # 1 16 3 128 128
-        n, b, _, hs, ws = data['search_images'].shape #2 16 3 128 128
-        template_images = data['template_images'].repeat(n, 1, 1, 1, 1).reshape(n*b, 3, ht, wt)#32 3 128 128
-        search_images = data['search_images'].reshape(n*b, 3, hs, ws)#32 3 256 256
+        _, b, _, ht, wt = data['template_images'].shape 
+        n, b, _, hs, ws = data['search_images'].shape 
+        template_images = data['template_images'].repeat(n, 1, 1, 1, 1).reshape(n*b, 3, ht, wt)
+        search_images = data['search_images'].reshape(n*b, 3, hs, ws)
         search_frames_data_samples=data["search_frames_data_samples"]
         
         search_frames_data_samples = [item for sublist in search_frames_data_samples for item in sublist]
@@ -119,7 +119,7 @@ class DINOTrackActor(BaseActor):
                       mode = 'loss')
         
         n, b, _ = data['search_anno'].shape
-        gt_bboxes = data['search_anno'].reshape(n*b, -1)  # 16 4
+        gt_bboxes = data['search_anno'].reshape(n*b, -1)  
         gt_bboxes = box_xywh_to_xyxy(gt_bboxes)
         
         
@@ -193,9 +193,9 @@ class DINOTrackActor(BaseActor):
     
     def cont_gt(self, gt_bboxes, size):
         bboxes = box_cxcywh_to_xyxy(box_xywh_to_cxcywh_scale(gt_bboxes, self.cfg.TRAIN.CTR_RATIO))*size
-        cood = torch.arange(size).unsqueeze(0).repeat(gt_bboxes.shape[0], 1).cuda()+0.5 # b, sz
-        x_mask = ((cood > bboxes[:, 0:1]) & (cood < bboxes[:, 2:3])).unsqueeze(1) # b, 1, w
-        y_mask = ((cood > bboxes[:, 1:2]) & (cood < bboxes[:, 3:4])).unsqueeze(2) # b, h, 1
+        cood = torch.arange(size).unsqueeze(0).repeat(gt_bboxes.shape[0], 1).cuda()+0.5 
+        x_mask = ((cood > bboxes[:, 0:1]) & (cood < bboxes[:, 2:3])).unsqueeze(1) 
+        y_mask = ((cood > bboxes[:, 1:2]) & (cood < bboxes[:, 3:4])).unsqueeze(2) 
         mask_c = (x_mask & y_mask)
 
         cx = torch.floor((bboxes[:, 0]+bboxes[:, 2])/2).long()
@@ -204,18 +204,18 @@ class DINOTrackActor(BaseActor):
         mask_c[bid, cy, cx] = True
         
         bboxes = box_cxcywh_to_xyxy(box_xywh_to_cxcywh(gt_bboxes))*size
-        cood = torch.arange(size).unsqueeze(0).repeat(gt_bboxes.shape[0], 1).cuda()+0.5 # b, sz
-        x_mask = ((cood > bboxes[:, 0:1]) & (cood < bboxes[:, 2:3])).unsqueeze(1) # b, 1, w
-        y_mask = ((cood > bboxes[:, 1:2]) & (cood < bboxes[:, 3:4])).unsqueeze(2) # b, h, 1
+        cood = torch.arange(size).unsqueeze(0).repeat(gt_bboxes.shape[0], 1).cuda()+0.5 
+        x_mask = ((cood > bboxes[:, 0:1]) & (cood < bboxes[:, 2:3])).unsqueeze(1) 
+        y_mask = ((cood > bboxes[:, 1:2]) & (cood < bboxes[:, 3:4])).unsqueeze(2) 
         mask_t = 1-2*(x_mask & y_mask).long()
         mask_t[mask_c] = 0
         return mask_t.flatten(1)
         
     def anno2mask(self, gt_bboxes, size, reverse=False):
-        bboxes = box_xywh_to_xyxy(gt_bboxes)*size # b, 4
-        cood = torch.arange(size).unsqueeze(0).repeat(gt_bboxes.shape[0], 1).cuda()+0.5 # b, sz
-        x_mask = ((cood > bboxes[:, 0:1]) & (cood < bboxes[:, 2:3])).unsqueeze(1) # b, 1, w
-        y_mask = ((cood > bboxes[:, 1:2]) & (cood < bboxes[:, 3:4])).unsqueeze(2) # b, h, 1
+        bboxes = box_xywh_to_xyxy(gt_bboxes)*size 
+        cood = torch.arange(size).unsqueeze(0).repeat(gt_bboxes.shape[0], 1).cuda()+0.5 
+        x_mask = ((cood > bboxes[:, 0:1]) & (cood < bboxes[:, 2:3])).unsqueeze(1) 
+        y_mask = ((cood > bboxes[:, 1:2]) & (cood < bboxes[:, 3:4])).unsqueeze(2) 
         mask = (x_mask & y_mask)
 
         cx = torch.floor((bboxes[:, 0]+bboxes[:, 2])/2).long()
@@ -228,31 +228,31 @@ class DINOTrackActor(BaseActor):
         return mask.flatten(1)
         
     def sample_negative(self, logits, gt_bboxes, size):
-        bboxes = gt_bboxes # b, 4
+        bboxes = gt_bboxes 
         cood_1d = (torch.arange(size)+0.5) / size
-        cood = cood_1d.unsqueeze(0).repeat(gt_bboxes.shape[0], 1).cuda() # b, sz
-        x_mask = ((cood > bboxes[:, 0:1]) & (cood < bboxes[:, 2:3])).unsqueeze(1) # b, 1, w
-        y_mask = ((cood > bboxes[:, 1:2]) & (cood < bboxes[:, 3:4])).unsqueeze(2) # b, h, 1
-        mask = (x_mask & y_mask) # b, h, w
-        mask = (mask.reshape(gt_bboxes.shape[0], -1))*(-1e9) # background == 1
+        cood = cood_1d.unsqueeze(0).repeat(gt_bboxes.shape[0], 1).cuda() 
+        x_mask = ((cood > bboxes[:, 0:1]) & (cood < bboxes[:, 2:3])).unsqueeze(1) 
+        y_mask = ((cood > bboxes[:, 1:2]) & (cood < bboxes[:, 3:4])).unsqueeze(2) 
+        mask = (x_mask & y_mask) 
+        mask = (mask.reshape(gt_bboxes.shape[0], -1))*(-1e9) 
         sample_logits = torch.sort(logits.reshape(gt_bboxes.shape[0], -1)+mask, descending=True, dim=-1).values[:, :9]
         return sample_logits
         
-    def contractive_learning(self, logits, gt_bbox):  # b, n, sz, sz
+    def contractive_learning(self, logits, gt_bbox):  
         b, n, sz, sz = logits.shape
         logits = logits.reshape(-1, 1, sz, sz)
         gt_bbox = box_xywh_to_xyxy(gt_bbox)[:, None, :].repeat((1, n, 1)).view(-1, 4).clamp(min=0.0, max=1.0)
         ctr = (gt_bbox[:, :2] + gt_bbox[:, 2:]).reshape(b*n, 1, 1, 2) / 2
         neg_logits = self.sample_negative(logits, gt_bbox, sz).to(logits)
         sample_points = ctr * 2 - 1
-        pos_logits = F.grid_sample(logits, sample_points, padding_mode="border", align_corners=True).reshape(b*n, -1) # b, 1, 1, 10
+        pos_logits = F.grid_sample(logits, sample_points, padding_mode="border", align_corners=True).reshape(b*n, -1) 
         logits = torch.cat([pos_logits, neg_logits], dim=-1)
         target = torch.zeros(b*n).to(gt_bbox.device).long()
-        return logits, target # check
+        return logits, target 
     def compute_losses(self, pred_dict, gt_bbox):
-        # Get boxes
-        pred_logits = pred_dict['pred_logits'] # 16 
-        pred_boxes = pred_dict['pred_boxes'] #16 4
+        
+        pred_logits = pred_dict['pred_logits'] 
+        pred_boxes = pred_dict['pred_boxes'] 
         
         
         
@@ -289,10 +289,10 @@ class DINOTrackActor(BaseActor):
          
          
          
-        #cls loss
-        pre_logits_com=pred_logits #16
+        
+        pre_logits_com=pred_logits 
 
-        # 填充位置
+        
         pre_logits_gt = torch.ones_like(pre_logits_com,dtype=pre_logits_com.dtype)
         cls_loss=self.objective['cls'](pre_logits_com.reshape(-1,1),pre_logits_gt.reshape(-1,1))
 
@@ -303,20 +303,20 @@ class DINOTrackActor(BaseActor):
         
         
         
-        #compute loss
+        
         loss=torch.tensor(0.0).cuda()+cls_loss
 
         pred_boxes_vec = pred_boxes.view(-1, 4)
-        num_queries=1#取1个query
-        gt_boxes_vec = box_xywh_to_xyxy(gt_bbox)[:, None, :].repeat((1, num_queries, 1)).view(-1, 4)  # (B,4) --> (B,1,4) --> (B,N,4)
+        num_queries=1
+        gt_boxes_vec = box_xywh_to_xyxy(gt_bbox)[:, None, :].repeat((1, num_queries, 1)).view(-1, 4)  
         try:
-            giou_loss, iou = self.objective['giou'](pred_boxes_vec, gt_boxes_vec)  # (BN,4) (BN,4)
+            giou_loss, iou = self.objective['giou'](pred_boxes_vec, gt_boxes_vec)  
         except:
             giou_loss, iou = torch.tensor(0.0).cuda(), torch.tensor(0.0).cuda()
-        l1_loss = self.objective['l1'](pred_boxes_vec, gt_boxes_vec)  # (BN,4) (BN,4) 但目标检测 直接按照列数排列了
+        l1_loss = self.objective['l1'](pred_boxes_vec, gt_boxes_vec)  
         
         loss = loss+self.loss_weight['giou'] * giou_loss + self.loss_weight['l1'] * l1_loss
-        # status for log
+        
         status = {"Loss/total": loss,
                     "Loss/giou": giou_loss,
                     "Loss/l1": l1_loss,
@@ -327,9 +327,9 @@ class DINOTrackActor(BaseActor):
     
     
     def compute_losses_match(self, pred_dict, gt_bbox, gt_cls, gt_cont):
-        # Get boxes
-        pred_logits = pred_dict['pred_logits'] # [6,16,900,256] 
-        pred_boxes = pred_dict['pred_boxes'] #[6,16,900,4]
+        
+        pred_logits = pred_dict['pred_logits'] 
+        pred_boxes = pred_dict['pred_boxes'] 
         
         
         
@@ -337,7 +337,7 @@ class DINOTrackActor(BaseActor):
         
         
 
-        #match
+        
 
         
         
@@ -346,33 +346,33 @@ class DINOTrackActor(BaseActor):
         
         
         
-        #cost 计算
-        pred_logits_last=pred_logits#6 16 900 256
+        
+        pred_logits_last=pred_logits
         pred_logits_last_index=pred_logits_last.sigmoid().argmax(-1,keepdim=True)
-        pred_logits_last=torch.gather(pred_logits_last,dim=-1,index=pred_logits_last_index)#6 16 900 1
+        pred_logits_last=torch.gather(pred_logits_last,dim=-1,index=pred_logits_last_index)
         
         
         
         
-        pred_boxes_last=pred_boxes#6 16 900 4
+        pred_boxes_last=pred_boxes
         
         
         lvl,bs,num_query,num_channel=pred_logits_last.shape
         
         pred_boxes_vec = box_cxcywh_to_xyxy(pred_boxes_last).view(-1, 4)
         
-        num_queries=num_query#取1个query
-        gt_boxes_vec = box_xywh_to_xyxy(gt_bbox)[None,:, None, :].repeat((lvl,1, num_queries, 1)).view(-1, 4).clamp(min=0.0, max=1.0)  # (B,4) --> (B,1,4) --> (B,N,4)
+        num_queries=num_query
+        gt_boxes_vec = box_xywh_to_xyxy(gt_bbox)[None,:, None, :].repeat((lvl,1, num_queries, 1)).view(-1, 4).clamp(min=0.0, max=1.0)  
         try:
-            giou_cost, iou = self.objective['giou_cost'](pred_boxes_vec, gt_boxes_vec)  # (BN,4) (BN,4)
+            giou_cost, iou = self.objective['giou_cost'](pred_boxes_vec, gt_boxes_vec)  
         except:
             giou_cost, iou = torch.tensor(0.0).cuda(), torch.tensor(0.0).cuda()
             
-        l1_cost = torch.abs(pred_boxes_vec-gt_boxes_vec).mean(-1)  # (BN,4) (BN,4) 但目标检测 直接按照列数排列了
+        l1_cost = torch.abs(pred_boxes_vec-gt_boxes_vec).mean(-1)  
         
         cost = self.loss_weight['giou'] * giou_cost + self.loss_weight['l1'] * l1_cost
         
-        cost = cost.reshape(lvl,bs,num_queries,1) #6 16 900 1
+        cost = cost.reshape(lvl,bs,num_queries,1) 
         
         
         pred_logits_last_gt=torch.ones_like(pred_logits_last)
@@ -380,59 +380,59 @@ class DINOTrackActor(BaseActor):
         cls_cost=cls_cost.reshape(lvl,bs,num_query,num_channel)
         
         
-        cost = cost + 2.0*cls_cost #6 16 900,1
+        cost = cost + 2.0*cls_cost 
         
-        cost = -cost#6 16 900
+        cost = -cost
         
         
     
         
          
-        #cls loss
         
-        pred_logits_index=pred_logits.sigmoid().argmax(-1,keepdim=True)#6 16 900 1
-        pre_logits_com=torch.gather(pred_logits,dim=-1,index=pred_logits_index).squeeze(-1)#6 16 900
+        
+        pred_logits_index=pred_logits.sigmoid().argmax(-1,keepdim=True)
+        pre_logits_com=torch.gather(pred_logits,dim=-1,index=pred_logits_index).squeeze(-1)
 
     
-        #计算最大值的索引
-        indices = cost.argmax(dim=-2)  # 形状为 [6, 16, 1]
+        
+        indices = cost.argmax(dim=-2)  
 
-        # 获取真值
+        
         pre_logits_com=torch.gather(pre_logits_com,dim=-1,index=indices)
         
         pre_logits_gt=torch.ones_like(pre_logits_com)
         
-        #损失函数计算
-        cls_loss=self.objective['cls'](pre_logits_com.reshape(-1,1),pre_logits_gt.reshape(-1,1).detach())#这样的话正例数目远远少于负例
+        
+        cls_loss=self.objective['cls'](pre_logits_com.reshape(-1,1),pre_logits_gt.reshape(-1,1).detach())
     
         
-        #获取bbox的预测
-        pred_logits_index=indices.unsqueeze(-1)##6 16 1 1
-        pred_logits_index_box=pred_logits_index.expand(-1, -1, -1, 4)#6 16 1 4
-        pred_boxes=torch.gather(pred_boxes,dim=-2,index=pred_logits_index_box)#6 16 1 4
-        pred_boxes=pred_boxes.squeeze(2)#6 16 4
+        
+        pred_logits_index=indices.unsqueeze(-1)
+        pred_logits_index_box=pred_logits_index.expand(-1, -1, -1, 4)
+        pred_boxes=torch.gather(pred_boxes,dim=-2,index=pred_logits_index_box)
+        pred_boxes=pred_boxes.squeeze(2)
             
         
         
-        #compute loss
+        
         loss=torch.tensor(0.0).cuda()+2.0*cls_loss
         for lvl,pred_logit in enumerate(pred_logits):
             pred_box=pred_boxes[lvl]
             pred_boxes_vec = box_cxcywh_to_xyxy(pred_box).view(-1, 4)
-            num_queries=1#取1个query
-            gt_boxes_vec = box_xywh_to_xyxy(gt_bbox)[:, None, :].repeat((1, num_queries, 1)).view(-1, 4).clamp(min=0.0, max=1.0)  # (B,4) --> (B,1,4) --> (B,N,4)
+            num_queries=1
+            gt_boxes_vec = box_xywh_to_xyxy(gt_bbox)[:, None, :].repeat((1, num_queries, 1)).view(-1, 4).clamp(min=0.0, max=1.0)  
             try:
-                giou_loss, iou = self.objective['giou'](pred_boxes_vec, gt_boxes_vec)  # (BN,4) (BN,4)
+                giou_loss, iou = self.objective['giou'](pred_boxes_vec, gt_boxes_vec)  
             except:
                 giou_loss, iou = torch.tensor(0.0).cuda(), torch.tensor(0.0).cuda()
-            l1_loss = self.objective['l1'](pred_boxes_vec, gt_boxes_vec)  # (BN,4) (BN,4) 但目标检测 直接按照列数排列了
+            l1_loss = self.objective['l1'](pred_boxes_vec, gt_boxes_vec)  
             
-            # pred_logits_vec=pred_logit#16
-            # gt_logits_vec=torch.ones_like(pred_logits_vec).detach()
-            # cls_loss=self.objective['cls'](pred_logits_vec.reshape(-1,1),gt_logits_vec.reshape(-1,1))#这样的话全部预测为1就可以偷懒了
+            
+            
+            
             
             loss = loss+self.loss_weight['giou'] * giou_loss + self.loss_weight['l1'] * l1_loss
-        # status for log
+        
         status = {"Loss/total": loss,
                     "Loss/giou": giou_loss,
                     "Loss/l1": l1_loss,
@@ -447,10 +447,10 @@ class DINOTrackActor(BaseActor):
 
     
     def compute_losses_confidence(self, pred_dict, gt_bbox, gt_cls, gt_cont):
-        # Get boxes
-        pred_logits = pred_dict['pred_logits'] # [6,16,900,256] 
-        pred_boxes = pred_dict['pred_boxes'] #[6,16,900,4]
-        confidence_query=pred_dict['confidence_query']#16 1
+        
+        pred_logits = pred_dict['pred_logits'] 
+        pred_boxes = pred_dict['pred_boxes'] 
+        confidence_query=pred_dict['confidence_query']
 
         
 
@@ -461,24 +461,24 @@ class DINOTrackActor(BaseActor):
         
         
 
-        #match
+        
 
-        pred_logits_index=pred_logits.sigmoid().argmax(-1,keepdim=True)#6 16 900 1
-        pred_logits=torch.gather(pred_logits,dim=-1,index=pred_logits_index)#6 16 900 1
+        pred_logits_index=pred_logits.sigmoid().argmax(-1,keepdim=True)
+        pred_logits=torch.gather(pred_logits,dim=-1,index=pred_logits_index)
         
         
          
-        #cls loss
-        pre_logits_com=pred_logits.squeeze(-1)#6 16 900
+        
+        pre_logits_com=pred_logits.squeeze(-1)
         pre_logits_gt=torch.zeros_like(pre_logits_com)
-        # Step 1: 计算最大值的索引
-        # 在最后一个维度上找到最大值的索引
-        indices = pre_logits_com.sigmoid().argmax(dim=-1, keepdim=True)  # 形状为 [6, 16, 1]
+        
+        
+        indices = pre_logits_com.sigmoid().argmax(dim=-1, keepdim=True)  
 
-        # 填充位置
+        
         values = torch.ones_like(indices,dtype=pre_logits_com.dtype)
         pre_logits_gt.scatter_(-1,indices,values).detach()
-        cls_loss=self.objective['cls'](pre_logits_com.reshape(-1,1),pre_logits_gt.reshape(-1,1))#这样的话正例数目远远少于负例
+        cls_loss=self.objective['cls'](pre_logits_com.reshape(-1,1),pre_logits_gt.reshape(-1,1))
 
 
 
@@ -488,33 +488,33 @@ class DINOTrackActor(BaseActor):
         
         
 
-        pred_logits_index=pred_logits.sigmoid().argmax(-2,keepdim=True)#6 16 1 1
-        pred_logits=torch.gather(pred_logits,dim=-2,index=pred_logits_index)#6 16 1 1
-        pred_logits=pred_logits.squeeze(-1).squeeze(-1)#6 16
+        pred_logits_index=pred_logits.sigmoid().argmax(-2,keepdim=True)
+        pred_logits=torch.gather(pred_logits,dim=-2,index=pred_logits_index)
+        pred_logits=pred_logits.squeeze(-1).squeeze(-1)
         
 
-        pred_logits_index_box=pred_logits_index.expand(-1, -1, -1, 4)#6 16 1 4
-        pred_boxes=torch.gather(pred_boxes,dim=-2,index=pred_logits_index_box)#6 16 1 4
-        pred_boxes=pred_boxes.squeeze(2)#6 16 4
+        pred_logits_index_box=pred_logits_index.expand(-1, -1, -1, 4)
+        pred_boxes=torch.gather(pred_boxes,dim=-2,index=pred_logits_index_box)
+        pred_boxes=pred_boxes.squeeze(2)
             
         
         
-        #compute loss
+        
         loss=torch.tensor(0.0).cuda()+cls_loss
         for lvl,pred_logit in enumerate(pred_logits):
             pred_box=pred_boxes[lvl]
             pred_boxes_vec = box_cxcywh_to_xyxy(pred_box).view(-1, 4)
-            num_queries=1#取1个query
-            gt_boxes_vec = box_xywh_to_xyxy(gt_bbox)[:, None, :].repeat((1, num_queries, 1)).view(-1, 4).clamp(min=0.0, max=1.0)  # (B,4) --> (B,1,4) --> (B,N,4)
+            num_queries=1
+            gt_boxes_vec = box_xywh_to_xyxy(gt_bbox)[:, None, :].repeat((1, num_queries, 1)).view(-1, 4).clamp(min=0.0, max=1.0)  
             try:
-                giou_loss, iou = self.objective['giou'](pred_boxes_vec, gt_boxes_vec)  # (BN,4) (BN,4)
+                giou_loss, iou = self.objective['giou'](pred_boxes_vec, gt_boxes_vec)  
             except:
                 giou_loss, iou = torch.tensor(0.0).cuda(), torch.tensor(0.0).cuda()
-            l1_loss = self.objective['l1'](pred_boxes_vec, gt_boxes_vec)  # (BN,4) (BN,4) 但目标检测 直接按照列数排列了
+            l1_loss = self.objective['l1'](pred_boxes_vec, gt_boxes_vec)  
             
-            # pred_logits_vec=pred_logit#16
-            # gt_logits_vec=torch.ones_like(pred_logits_vec).detach()
-            # cls_loss=self.objective['cls'](pred_logits_vec.reshape(-1,1),gt_logits_vec.reshape(-1,1))#这样的话全部预测为1就可以偷懒了
+            
+            
+            
             
             loss = loss+self.loss_weight['giou'] * giou_loss + self.loss_weight['l1'] * l1_loss
 
@@ -525,7 +525,7 @@ class DINOTrackActor(BaseActor):
         loss=loss+confidence_loss
 
 
-        # status for log
+        
         status = {"Loss/total": loss,
                     "Loss/giou": giou_loss,
                     "Loss/l1": l1_loss,
@@ -541,9 +541,9 @@ class DINOTrackActor(BaseActor):
     
     
     def compute_losses_memory(self, pred_dict, gt_bbox, gt_cls, gt_cont):
-        # Get boxes
-        pred_logits = pred_dict['pred_logits'] # [6,16,900,256] 
-        pred_boxes = pred_dict['pred_boxes'] #[6,16,900,4]
+        
+        pred_logits = pred_dict['pred_logits'] 
+        pred_boxes = pred_dict['pred_boxes'] 
         
         
         
@@ -551,24 +551,24 @@ class DINOTrackActor(BaseActor):
         
         
 
-        #match
+        
 
-        pred_logits_index=pred_logits.sigmoid().argmax(-1,keepdim=True)#6 16 900 1
-        pred_logits=torch.gather(pred_logits,dim=-1,index=pred_logits_index)#6 16 900 1
+        pred_logits_index=pred_logits.sigmoid().argmax(-1,keepdim=True)
+        pred_logits=torch.gather(pred_logits,dim=-1,index=pred_logits_index)
         
         
          
-        #cls loss
-        pre_logits_com=pred_logits.squeeze(-1)#6 16 900
+        
+        pre_logits_com=pred_logits.squeeze(-1)
         pre_logits_gt=torch.zeros_like(pre_logits_com)
-        # Step 1: 计算最大值的索引
-        # 在最后一个维度上找到最大值的索引
-        indices = pre_logits_com.sigmoid().argmax(dim=-1, keepdim=True)  # 形状为 [6, 16, 1]
+        
+        
+        indices = pre_logits_com.sigmoid().argmax(dim=-1, keepdim=True)  
 
-        # 填充位置
+        
         values = torch.ones_like(indices,dtype=pre_logits_com.dtype)
         pre_logits_gt.scatter_(-1,indices,values).detach()
-        cls_loss=self.objective['cls'](pre_logits_com.reshape(-1,1),pre_logits_gt.reshape(-1,1))#这样的话正例数目远远少于负例
+        cls_loss=self.objective['cls'](pre_logits_com.reshape(-1,1),pre_logits_gt.reshape(-1,1))
 
 
 
@@ -578,20 +578,20 @@ class DINOTrackActor(BaseActor):
         
         
 
-        pred_logits_index=pred_logits.sigmoid().argmax(-2,keepdim=True)#6 16 1 1
-        pred_logits=torch.gather(pred_logits,dim=-2,index=pred_logits_index)#6 16 1 1
-        pred_logits=pred_logits.squeeze(-1).squeeze(-1)#6 16
+        pred_logits_index=pred_logits.sigmoid().argmax(-2,keepdim=True)
+        pred_logits=torch.gather(pred_logits,dim=-2,index=pred_logits_index)
+        pred_logits=pred_logits.squeeze(-1).squeeze(-1)
         
 
-        pred_logits_index_box=pred_logits_index.expand(-1, -1, -1, 4)#6 16 1 4
-        pred_boxes=torch.gather(pred_boxes,dim=-2,index=pred_logits_index_box)#6 16 1 4
-        pred_boxes=pred_boxes.squeeze(2)#6 16 4
+        pred_logits_index_box=pred_logits_index.expand(-1, -1, -1, 4)
+        pred_boxes=torch.gather(pred_boxes,dim=-2,index=pred_logits_index_box)
+        pred_boxes=pred_boxes.squeeze(2)
             
         
         
-        #compute loss
-        num_queries=1#取1个query
-        gt_boxes_vec = box_xywh_to_xyxy(gt_bbox)[:, None, :].repeat((1, num_queries, 1)).view(-1, 4).clamp(min=0.0, max=1.0)  # (B,4) --> (B,1,4) --> (B,N,4)
+        
+        num_queries=1
+        gt_boxes_vec = box_xywh_to_xyxy(gt_bbox)[:, None, :].repeat((1, num_queries, 1)).view(-1, 4).clamp(min=0.0, max=1.0)  
         ntimes=4
         BN,num_gt=gt_boxes_vec.shape
         num_pre=num_gt
@@ -604,27 +604,27 @@ class DINOTrackActor(BaseActor):
             pred_box=pred_boxes[lvl]
             pred_boxes_vec = box_cxcywh_to_xyxy(pred_box).view(-1, 4)
             try:
-                giou_loss, iou = self.objective['giou'](pred_boxes_vec, gt_boxes_vec)  # (BN,4) (BN,4)
+                giou_loss, iou = self.objective['giou'](pred_boxes_vec, gt_boxes_vec)  
             except:
                 giou_loss, iou = torch.tensor(0.0).cuda(), torch.tensor(0.0).cuda()
             
-            l1_loss = self.objective['l1'](pred_boxes_vec, gt_boxes_vec)  # (BN,4) (BN,4) 但目标检测 直接按照列数排列了
+            l1_loss = self.objective['l1'](pred_boxes_vec, gt_boxes_vec)  
             
             pred_boxes_vec=pred_boxes_vec.reshape(ntimes,BN//ntimes,num_pre)
             pred_boxes_vec_dir=pred_boxes_vec[:-1]-pred_boxes_vec[1:]
             pred_boxes_vec_dir=pred_boxes_vec_dir.reshape(BN//ntimes*(ntimes-1),num_pre)
           
             
-            dir_loss = self.objective['l1'](pred_boxes_vec_dir, gt_boxes_vec_dir)  # (BN,4) (BN,4) 但目标检测 直接按照列数排列了
+            dir_loss = self.objective['l1'](pred_boxes_vec_dir, gt_boxes_vec_dir)  
             
             
             
-            # pred_logits_vec=pred_logit#16
-            # gt_logits_vec=torch.ones_like(pred_logits_vec).detach()
-            # cls_loss=self.objective['cls'](pred_logits_vec.reshape(-1,1),gt_logits_vec.reshape(-1,1))#这样的话全部预测为1就可以偷懒了
+            
+            
+            
             
             loss = loss+self.loss_weight['giou'] * giou_loss + self.loss_weight['l1'] * l1_loss+0.1*dir_loss
-        # status for log
+        
         status = {"Loss/total": loss,
                     "Loss/giou": giou_loss,
                     "Loss/l1": l1_loss,
@@ -644,28 +644,28 @@ class DINOTrackActor(BaseActor):
         Returns:
         - ious (torch.Tensor): IOU的张量，形状为 [Bs]。
         """
-        # 计算交集的坐标
+        
         inter_x1 = torch.max(pre_boxes[:, 0], gt_boxes[:, 0])
         inter_y1 = torch.max(pre_boxes[:, 1], gt_boxes[:, 1])
         inter_x2 = torch.min(pre_boxes[:, 2], gt_boxes[:, 2])
         inter_y2 = torch.min(pre_boxes[:, 3], gt_boxes[:, 3])
 
-        # 计算交集的宽和高
+        
         inter_w = (inter_x2 - inter_x1).clamp(min=0)
         inter_h = (inter_y2 - inter_y1).clamp(min=0)
         
-        # 计算交集的面积
+        
         inter_area = inter_w * inter_h
 
-        # 计算预测框和真实框的面积
+        
         pre_area = (pre_boxes[:, 2] - pre_boxes[:, 0]) * (pre_boxes[:, 3] - pre_boxes[:, 1])
         gt_area = (gt_boxes[:, 2] - gt_boxes[:, 0]) * (gt_boxes[:, 3] - gt_boxes[:, 1])
 
-        # 计算并集的面积
+        
         union_area = pre_area + gt_area - inter_area
 
-        # 计算IOU
-        eps = 1e-7  # 避免除以零
+        
+        eps = 1e-7  
         ious = inter_area / (union_area + eps)
 
         return ious
