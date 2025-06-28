@@ -13,7 +13,7 @@ Use the Anaconda
 ```
 conda create -n streamdnlt python=3.6
 conda activate streamdnlt
-bash install.sh
+bash StreamDNLT/YoloWorld/install.sh
 ```
 
 ## Data Preparation
@@ -69,7 +69,7 @@ python  StreamDNLT/YoloWorld/lib/train/run_training.py
 ```
 
 ## Evaluation
-Download the model weight from [github](https://drive.google.com/drive/folders/1UZTrGcL3YlxvNpHi0wKsO_sKsTYuYnFo?usp=sharing)
+Download the model weight from [Baidu Netdisk](https://pan.baidu.com/s/1dNInUdi0N9U-h1NaNy8cdQ?pwd=y4sx)
 
 # Testing
 python test.py

@@ -1,0 +1,38 @@
+Collecting mmcv
+  Downloading mmcv-2.2.0.tar.gz (479 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 479.1/479.1 kB 2.0 MB/s eta 0:00:00
+  Preparing metadata (setup.py): started
+  Preparing metadata (setup.py): finished with status 'done'
+Requirement already satisfied: addict in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from mmcv) (2.4.0)
+Collecting mmengine>=0.3.0
+  Downloading mmengine-0.10.7-py3-none-any.whl (452 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 452.7/452.7 kB 9.6 MB/s eta 0:00:00
+Requirement already satisfied: numpy in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from mmcv) (1.24.3)
+Requirement already satisfied: packaging in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from mmcv) (23.0)
+Requirement already satisfied: Pillow in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from mmcv) (9.5.0)
+Requirement already satisfied: pyyaml in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from mmcv) (6.0)
+Requirement already satisfied: yapf in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from mmcv) (0.33.0)
+Requirement already satisfied: matplotlib in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from mmengine>=0.3.0->mmcv) (3.7.1)
+Requirement already satisfied: rich in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from mmengine>=0.3.0->mmcv) (13.4.2)
+Collecting termcolor
+  Downloading termcolor-3.1.0-py3-none-any.whl (7.7 kB)
+Requirement already satisfied: opencv-python>=3 in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from mmengine>=0.3.0->mmcv) (4.7.0.72)
+Requirement already satisfied: tomli>=2.0.1 in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from yapf->mmcv) (2.0.1)
+Requirement already satisfied: contourpy>=1.0.1 in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from matplotlib->mmengine>=0.3.0->mmcv) (1.0.7)
+Requirement already satisfied: cycler>=0.10 in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from matplotlib->mmengine>=0.3.0->mmcv) (0.11.0)
+Requirement already satisfied: fonttools>=4.22.0 in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from matplotlib->mmengine>=0.3.0->mmcv) (4.39.4)
+Requirement already satisfied: kiwisolver>=1.0.1 in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from matplotlib->mmengine>=0.3.0->mmcv) (1.4.4)
+Requirement already satisfied: pyparsing>=2.3.1 in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from matplotlib->mmengine>=0.3.0->mmcv) (3.0.9)
+Requirement already satisfied: python-dateutil>=2.7 in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from matplotlib->mmengine>=0.3.0->mmcv) (2.8.2)
+Requirement already satisfied: markdown-it-py>=2.2.0 in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from rich->mmengine>=0.3.0->mmcv) (3.0.0)
+Requirement already satisfied: pygments<3.0.0,>=2.13.0 in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from rich->mmengine>=0.3.0->mmcv) (2.15.1)
+Requirement already satisfied: mdurl~=0.1 in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from markdown-it-py>=2.2.0->rich->mmengine>=0.3.0->mmcv) (0.1.2)
+Requirement already satisfied: six>=1.5 in /home/qui_wzh/miniconda3/lib/python3.11/site-packages (from python-dateutil>=2.7->matplotlib->mmengine>=0.3.0->mmcv) (1.16.0)
+Building wheels for collected packages: mmcv
+  Building wheel for mmcv (setup.py): started
+  Building wheel for mmcv (setup.py): finished with status 'done'
+  Created wheel for mmcv: filename=mmcv-2.2.0-py2.py3-none-any.whl size=732081 sha256=cc9d772bcd1b9e8e94a85d7bd02d32933214757194d0fc6c68922c2fc2f23dc6
+  Stored in directory: /home/share/hhd/pip/wheels/52/4f/8c/3145c780918db1a98c6c7a009a92bb1fadf2217118b25c4d53
+Successfully built mmcv
+Installing collected packages: termcolor, mmengine, mmcv
+Successfully installed mmcv-2.2.0 mmengine-0.10.7 termcolor-3.1.0
