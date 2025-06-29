@@ -54,7 +54,7 @@ python  StreamDNLT/YoloWorld/lib/train/run_training.py
 Download the model weight from [Baidu Netdisk](https://pan.baidu.com/s/1dNInUdi0N9U-h1NaNy8cdQ?pwd=y4sx)
 
 # Testing
-python test.py
+python StreamDNLT/YoloWorld/tracking/test.py
 
 # Evaluation
 python tracking/analysis_results.py --tracker_name uvltrack --tracker_param streamdnlt_yoloworld_tracking --dataset_name <dataset_name>_<reference_modality>_<EPOCH>
